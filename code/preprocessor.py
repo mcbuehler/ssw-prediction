@@ -6,7 +6,7 @@ from netCDF4 import Dataset
 
 class Preprocessor:
     def __init__(self, first_winter_name, second_winter_name, min_pres=6,
-            max_pres=16, int_pres_low=0, int_pres_high=2):
+                 max_pres=16, int_pres_low=0, int_pres_high=2):
         self.first_winter = Dataset(first_winter_name)
         self.second_winter = Dataset(second_winter_name)
         self.min_pres = min_pres
@@ -22,7 +22,8 @@ class Preprocessor:
     def get_useful_part(self, variable):
         first_winter_part = self.first_winter[variable][270:]
         second_winter_part = self.second_winter[variable][:120]
-        winter = np.concatenate((first_winter_part, second_winter_part), axis=0)
+        winter = np.concatenate((first_winter_part, second_winter_part),
+                                axis=0)
         winter = winter[:, self.min_pres:self.max_pres, :, :]
         winter = np.mean(winter, axis=3)
         winter = winter[:, self.int_pres_low:self.int_pres_high, :]
@@ -46,7 +47,7 @@ class Preprocessor:
             wind_interp[i] = f(10.0)
 
         return wind_interp
-         
+
     def get_mean_temp_80_90(self):
         raise(NotImplementedError)
 
@@ -57,11 +58,14 @@ class Preprocessor:
     def construct_feature_matrix():
         raise(NotImplementedError)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Preprocessor for the model data')
-    parser.add_argument('--year1', help='Path to the first year', required=True)
-    parser.add_argument('--year2', help='Path to the second year', required=True)
+    parser.add_argument('--year1', help='Path to the first year',
+                        required=True)
+    parser.add_argument('--year2', help='Path to the second year',
+                        required=True)
     args = parser.parse_args()
 
     preprocess = Preprocessor(args.year1, args.year2)
