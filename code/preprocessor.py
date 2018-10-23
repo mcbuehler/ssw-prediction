@@ -78,8 +78,13 @@ class Preprocessor:
         raise(NotImplementedError)
 
     @staticmethod
-    def construct_feature_matrix():
-        raise(NotImplementedError)
+    def construct_feature_matrix(pkl_file=None):
+        try:
+            with open(pkl_file, 'rb') as f:
+                suf_ar = pickle.load(f)
+        except FileNotFoundError:
+            with open(str(pkl_file), 'wb') as f:
+                pickle.dump(suf_ar, f)
 
 
 if __name__ == '__main__':
