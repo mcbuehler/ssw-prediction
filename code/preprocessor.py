@@ -1,6 +1,4 @@
 import numpy as np
-import argparse
-import pickle
 from scipy.interpolate import interp1d
 from netCDF4 import Dataset
 from bisect import bisect_right
