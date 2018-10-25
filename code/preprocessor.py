@@ -304,7 +304,7 @@ class Preprocessor:
         """
         data = Data()
         data.temp_60_70 = temp[:, 0]
-        data.temp70_80 = temp[:, 1]
+        data.temp_80_90 = temp[:, 1]
         data.temp_60_90 = temp[:, 2]
         data.wind_60 = wind_60
         data.wind_65 = wind_65
@@ -312,7 +312,7 @@ class Preprocessor:
 
 
 if __name__ == '__main__':
-    preprocess = Preprocessor('data/atmos_daily_1.nc', 'data/atmos_daily_2.nc')
+    preprocess = Preprocessor('../data/atmos_daily_1.nc', '../data/atmos_daily_2.nc')
     wind_60 = preprocess.get_uwind(60)
     wind_65 = preprocess.get_uwind(65)
     temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
