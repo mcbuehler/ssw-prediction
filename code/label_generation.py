@@ -36,7 +36,7 @@ def SSWs_wind_reversal(data, data_index):
                 candidate_index = None
         elif candidate_index is None:
             streak = 0
-            if (len(SSWs) == 0 or SSWs[-1] + 20 < i):
+            if (len(SSWs) == 0 or streak >= 20):
                 candidate_index = i
         else: streak = 0
 
