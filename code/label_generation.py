@@ -15,7 +15,6 @@ def UnT(data):
     return len(SSWs)!=0 , SSWs
 
 def CP07(data):
-
     return SSWs_wind_reversal(data, 3)
 
 def U65(data):
@@ -37,8 +36,9 @@ def SSWs_wind_reversal(data, data_index):
                 candidate_index = None
         elif candidate_index is None:
             streak = 0
-            if (len(SSWs) == 0 or SSWs[-1]):
+            if (len(SSWs) == 0 or SSWs[-1] + 20 < i):
                 candidate_index = i
+        else: streak = 0
 
     return len(SSWs)!=0 , SSWs
 
@@ -84,6 +84,6 @@ if __name__ == '__main__':
                      [data.temp_60_90, data.temp_60_70, data.temp_80_90, data.wind_60, data.wind_65]])
 
 
-    labels = create_labels(dat,"ZPOL_temp")
+    labels = create_labels(dat,"CP07")
 
     print(labels)
