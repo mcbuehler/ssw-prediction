@@ -304,7 +304,7 @@ class Preprocessor:
         """
         data = Data()
         data.temp_60_70 = temp[:, 0]
-        data.temp70_80 = temp[:, 1]
+        data.temp_80_90 = temp[:, 1]
         data.temp_60_90 = temp[:, 2]
         data.wind_60 = wind_60
         data.wind_65 = wind_65
