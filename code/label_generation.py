@@ -2,7 +2,6 @@ import numpy as np
 from preprocessor import Preprocessor
 
 
-
 def UnT(data):
 
     def check_SSW(m_temp_gradient, ssw):
@@ -22,23 +21,47 @@ def U65(data):
     return SSWs_wind_reversal(data, 4)
 
 def SSWs_wind_reversal(data, data_index):
+    """Given a data matrix of winter, checks whether
 
-    SSWs = []
-    candidate_index = None
-    streak = 0
+            Parameters
+            ----------
+
+            Returns
+            -------
+                 : bool
+                    Whether an SSW event happened during given winter or not.
+                 SSWs: list[int]
+                    Indices of days when SSW events happen.
+
+            """
+    SSWs = [] # an array of indices of the SSW events
+    candidate_index = None # temporary variable for keeping the potential SSW event of interest
+    streak = 0 # Number of consecutive days when the winds are westerly
 
     for i, wind in enumerate(data[data_index, :]):
+
+        # If wind is westerly, increase the streak
         if wind >= 0:
             streak += 1
+
+            # If the winds return to westerly for at least 10 consecutive days prior to 30 Apr
+            # and events happen from Nov to Mar
             if streak >= 10 and candidate_index is not None \
-                    and candidate_index < 180:
+                            and candidate_index < 180:
                 SSWs.append(candidate_index)
                 candidate_index = None
-        elif candidate_index is None:
-            streak = 0
-            if (len(SSWs) == 0 or streak >= 20):
+
+        # If wind is reversed.
+        else:
+
+            # If we are not in the middle of an SSW event
+            # If this is the first time that the wind is reversed or we have not experienced any wind reversals for 20 consecutive days.
+            # Start the explore this reversal as an SSW event.
+            if candidate_index is None and (len(SSWs) == 0 or streak >= 20):
                 candidate_index = i
-        else: streak = 0
+
+            #reset streak
+            streak = 0
 
     return len(SSWs)!=0 , SSWs
 
@@ -68,6 +91,8 @@ def create_labels(data, definition):
     f = definitions[definition]
     return list(zip(*[f(xi) for xi in data]))
 
+def get_available_defitinions():
+    return list(definitions.keys())
 
 if __name__ == '__main__':
 
