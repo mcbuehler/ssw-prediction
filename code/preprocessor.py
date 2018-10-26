@@ -206,15 +206,11 @@ class Preprocessor:
                                              'lat', level,
                                              low_part=idx_low_lat
                                              )
-            # find the relative position in the reduced matrix compared to the
-            # original matrix
-            idx_low_small, _ = self.get_pres_interpol('lat', level,
-                                                      low_part=idx_low_lat)
-            start_ind.append(idx_low_small + 1)
+            start_ind.append(idx_lat_before + 1)
             x = self.first_winter.variables[
                     'lat'][idx_low_level: idx_high_level + 1].data
 
-            latitudes.insert(idx_low_small + 1 + i, level)
+            latitudes.insert(idx_lat_before + 1 + i, level)
             level_info.append((idx_low_level, idx_high_level, idx_lat_before,
                                idx_lat_after, x))
 
@@ -304,7 +300,7 @@ class Preprocessor:
         """
         data = Datapoint()
         data.temp_60_70 = temp[:, 0]
-        data.temp70_80 = temp[:, 1]
+        data.temp_80_90 = temp[:, 1]
         data.temp_60_90 = temp[:, 2]
         data.wind_60 = wind_60
         data.wind_65 = wind_65
