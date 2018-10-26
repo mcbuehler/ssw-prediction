@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from netCDF4 import Dataset
 from bisect import bisect_right
-from dataset import Data
+from dataset import Datapoint
 
 
 class Preprocessor:
@@ -302,7 +302,7 @@ class Preprocessor:
 
 
         """
-        data = Data()
+        data = Datapoint()
         data.temp_60_70 = temp[:, 0]
         data.temp70_80 = temp[:, 1]
         data.temp_60_90 = temp[:, 2]
@@ -311,10 +311,34 @@ class Preprocessor:
         return data
 
 
+class DataPointFactory:
+    """
+    Factory class for creating datapoints
+    """
+    @staticmethod
+    def create(path1, path2) -> Datapoint:
+        """
+        Creates instance of Datapoint class containing data for one winter
+        :param path1: path to year where the beginning of the winter should be extracted.
+        :param path2: path to year where the end of the winter should be extracted.
+        :return: Datapoint
+        """
+        preprocess = Preprocessor(path1, path2)
+        wind_60 = preprocess.get_uwind(60)
+        wind_65 = preprocess.get_uwind(65)
+        temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
+        data = preprocess.construct_data_point(wind_60, wind_65, temp)
+        return data
+
+
 if __name__ == '__main__':
-    preprocess = Preprocessor('data/atmos_daily_1.nc', 'data/atmos_daily_2.nc')
+    preprocess = Preprocessor('../data/atmos_daily_1.nc', '../data/atmos_daily_2.nc')
     wind_60 = preprocess.get_uwind(60)
     wind_65 = preprocess.get_uwind(65)
     temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
     data = preprocess.construct_data_point(wind_60, wind_65, temp)
-    # print(data.__dict__)
+
+    path1 = '../data/atmos_daily_1.nc'
+    path2 = '../data/atmos_daily_2.nc'
+    print(DataPointFactory.create(path1, path2).__dict__.keys())
+
