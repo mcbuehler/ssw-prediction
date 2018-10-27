@@ -1,9 +1,11 @@
 import os
 
 from collections import Iterable
+from typing import Union
 
 
-def create_filename(prefix, index, postfix, path_prefix=""):
+def create_filename(prefix: str, index: Union[int, str], postfix: str,
+                    path_prefix: str = ""):
     """
     Creates a filename in this format: (<path_prefix>/)<prefix><index><postfix>
     :param prefix:
@@ -15,7 +17,8 @@ def create_filename(prefix, index, postfix, path_prefix=""):
     return os.path.join(path_prefix, "{}{}{}".format(prefix, index, postfix))
 
 
-def get_files_with_prefix(path, prefix, keep_path=False) -> Iterable:
+def get_files_with_prefix(path: str, prefix: str,
+                          keep_path: bool = False) -> Iterable:
     """
     Returns the folders stored at path that start with prefix.
     :param path:
@@ -30,10 +33,11 @@ def get_files_with_prefix(path, prefix, keep_path=False) -> Iterable:
     return files_filtered
 
 
-def get_data_file_paths(input_folder, data_file_name) -> Iterable:
+def get_data_file_paths(input_folder: str, data_file_name: str) -> Iterable:
     """
     Returns all data files stored in subfolders.
-    Subfolders are assumed to be named in the format year_<index>, e.g. "year_82"
+    Subfolders are assumed to be named in the format year_<index>,
+     e.g. "year_82"
     :param input_folder: folder containing subfolders starting with "year_..."
     :param data_file_name: name of file in subfolders, e.g. "atmos_daily.nc"
     :return:

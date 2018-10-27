@@ -1,5 +1,3 @@
-from collections import Iterable
-
 import h5py
 
 from dataset import Datapoint
@@ -33,8 +31,8 @@ VERBOSE = 20  # verbosity level
 CLEAR_PREVIOUS = True
 
 
-def get_data_paths(base_path, folder_prefixes, data_file_name,
-                   limit=-1, verbose=False) -> list:
+def get_data_paths(base_path: str, folder_prefixes: list, data_file_name: str,
+                   limit: int = -1, verbose: bool = False) -> list:
     """
     Returns paths to the files that should be processed
     :param base_path: folder where the single years are stored,
@@ -47,7 +45,7 @@ def get_data_paths(base_path, folder_prefixes, data_file_name,
     :return: list of paths
     """
     # All input folders that start with one of the prefixes
-    input_folders = []
+    input_folders = list()
     for prefix in folder_prefixes:
         input_folders += get_files_with_prefix(base_path, prefix,
                                                keep_path=True)
@@ -73,7 +71,7 @@ def get_data_paths(base_path, folder_prefixes, data_file_name,
 
 
 def remove_datapoints(paths: list, preprocessed_winters: list,
-                      verbose: bool=False) -> list:
+                      verbose: bool = False) -> list:
     """
     Removes preprocessed winters from
     :param paths: list of paths to data files
@@ -90,15 +88,17 @@ def remove_datapoints(paths: list, preprocessed_winters: list,
         if datapoint_identifier in preprocessed_winters:
             already_processed_paths.append(path)
 
-    paths_reduced = [path for path in paths if path not in already_processed_paths]
+    paths_reduced = list(
+        path for path in paths if path not in already_processed_paths)
 
     if verbose:
         print("Ommitting {} already processed data points"
-              .format(len(paths)-len(paths_reduced)))
+              .format(len(paths) - len(paths_reduced)))
     return paths_reduced
 
 
-def process_single_year(path1: str, path2: str, verbose: bool= False) -> tuple:
+def process_single_year(path1: str, path2: str,
+                        verbose: bool = False) -> tuple:
     """
     Processes the year contained in the files for the given paths
     :param path1: path of starting winter
@@ -115,7 +115,7 @@ def process_single_year(path1: str, path2: str, verbose: bool= False) -> tuple:
     return identifier, datapoint
 
 
-def write_csv(path_h5file, base_path_out):
+def write_csv(path_h5file: str, base_path_out: str) -> None:
     """
     Copies datapoints from h5 file to N CSV files
     (N = number of data points in h5 file).
@@ -144,7 +144,7 @@ def load_preprocessed_winters_identifiers(path_h5_file: str) -> list:
     return identifiers
 
 
-def run_preprocessing(limit=-1):
+def run_preprocessing(limit: int = -1) -> None:
     """
     Runs the preprocessing for the configuration given in the global variables.
     Make sure to set these variables beforehand:
