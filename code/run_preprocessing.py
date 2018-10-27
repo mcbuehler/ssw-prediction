@@ -8,16 +8,26 @@ import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
 
-# Path and file name configuration
-#     Production
-PATH_BASE_INPUT = "/mnt/ds3lab-scratch/dslab2018/bernatj/model"
-PATH_OUT_BASE = "/mnt/ds3lab-scratch/climate/preprocessed_output"
-#     Development
-# PATH_OUT_BASE = "data/preprocessing_out/"
-# PATH_BASE_INPUT = "data"
 
-#
-PATH_OUT_HDF5 = os.path.join(PATH_OUT_BASE, "data_preprocessed.h5")
+def check_environment_variables():
+    required_environ_variables = ["DSLAB_CLIMATE_BASE_INPUT",
+                                  "DSLAB_CLIMATE_BASE_OUTPUT"]
+    missing_environ_variables = [var for var in required_environ_variables if
+                                 os.getenv(var) is None]
+
+    if len(missing_environ_variables) > 0:
+        print(
+            "Please set environment variables before running this script:")
+        print(", ".join(missing_environ_variables))
+        exit(0)
+
+
+# Path and file name configuration
+check_environment_variables()
+PATH_INPUT_BASE = os.getenv("DSLAB_CLIMATE_BASE_INPUT")
+PATH_OUTPUT_BASE = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
+
+PATH_OUT_HDF5 = os.path.join(PATH_OUTPUT_BASE, "data_preprocessed.h5")
 FOLDER_PREFIXES = ["SSW_clim_sst_", "fixed_sst_"]
 DATA_FILE_NAME = "atmos_daily.nc"
 
@@ -28,7 +38,7 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
 # CLEAR_PREVIOUS = False
-CLEAR_PREVIOUS = True
+CLEAR_PREVIOUS = False
 
 
 def get_data_paths(base_path: str, folder_prefixes: list, data_file_name: str,
@@ -158,7 +168,7 @@ def run_preprocessing(limit: int = -1) -> None:
     :return: None
     """
     # load all the paths we want to process
-    paths = get_data_paths(PATH_BASE_INPUT, FOLDER_PREFIXES, DATA_FILE_NAME,
+    paths = get_data_paths(PATH_INPUT_BASE, FOLDER_PREFIXES, DATA_FILE_NAME,
                            limit, True)
     # Run the job for all years
     dataset = Parallel(n_jobs=N_JOBS, verbose=VERBOSE)(
@@ -188,7 +198,7 @@ def run():
     # Process all years and save them to h5 file
     run_preprocessing(LIMIT)
     # Write the contents of the hdf5 file to csv files
-    write_csv(PATH_OUT_HDF5, PATH_OUT_BASE)
+    write_csv(PATH_OUT_HDF5, PATH_OUTPUT_BASE)
 
 
 if __name__ == "__main__":
