@@ -9,32 +9,39 @@ class Datapoint:
 
     Attributes
     ----------
-    temp_60_90: numpy array
-        An array that has the polar cap temperatures for every day from
-        latitude 60 to latitude 90.
     temp_60_70: numpy array
         An array that has the polar cap temperatures for every day from
         latitude 60 to latitude 70.
-    temp_70_80: numpy array
+    temp_80_90: numpy array
         An array that has the polar cap temperatures for every day from
         latitude 70 to latitude 80.
+    temp_60_90: numpy array
+        An array that has the polar cap temperatures for every day from
+        latitude 60 to latitude 90.
     wind_60: numpy array
         An array that contains the U component of the wind at 60 latitude.
     wind_65: numpy array
         An array that contains the U component of the wind at 60 latitude.
     """
-    temp_60_90 = None
     temp_60_70 = None
-    temp70_80 = None
+    temp_80_90 = None
+    temp_60_90 = None
     wind_60 = None
     wind_65 = None
+
+    def __init__(self, temp_60_70, temp_80_90, temp_60_90, wind_60, wind_65):
+        self.temp_60_70 = temp_60_70
+        self.temp_80_90 = temp_80_90
+        self.temp_60_90 = temp_60_90
+        self.wind_60 = wind_60
+        self.wind_65 = wind_65
 
     def to_np_array(self) -> np.array:
         """
 
         :return: np.array
         """
-        variables = [self.temp_60_90, self.temp_60_70, self.temp70_80,
+        variables = [self.temp_60_70, self.temp_80_90, self.temp_60_90,
                      self.wind_60, self.wind_65]
         if any(elem is None for elem in variables):
             print("We have None in our variables!", file=sys.stderr)
@@ -44,7 +51,7 @@ class Datapoint:
 
     @staticmethod
     def get_variables() -> Iterable:
-        variables = ["temp_60_90", "temp_60_70", "temp70_80", "wind_60",
+        variables = ["temp_60_70", "temp_80_90", "temp_60_90", "wind_60",
                      "wind_65"]
         return variables
 

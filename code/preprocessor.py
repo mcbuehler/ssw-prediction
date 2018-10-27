@@ -298,13 +298,14 @@ class Preprocessor:
 
 
         """
-        data = Datapoint()
-        data.temp_60_70 = temp[:, 0]
-        data.temp_80_90 = temp[:, 1]
-        data.temp_60_90 = temp[:, 2]
-        data.wind_60 = wind_60
-        data.wind_65 = wind_65
-        return data
+        data_dict = dict(
+            temp_60_70=temp[:, 0],
+            temp_80_90=temp[:, 1],
+            temp_60_90=temp[:, 2],
+            wind_60=wind_60,
+            wind_65=wind_65)
+        data_point = Datapoint(**data_dict)
+        return data_point
 
 
 class DataPointFactory:
