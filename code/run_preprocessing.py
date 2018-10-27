@@ -7,6 +7,7 @@ from file_system_utils import get_files_with_prefix, get_data_file_paths
 from preprocessor import DataPointFactory
 import os
 import pandas as pd
+import numpy as np
 from joblib import Parallel, delayed
 
 # Path and file name configuration
@@ -14,8 +15,8 @@ from joblib import Parallel, delayed
 PATH_BASE_INPUT = "/mnt/ds3lab-scratch/dslab2018/bernatj/model"
 PATH_OUT_BASE = "/mnt/ds3lab-scratch/dslab2018_climate"
 #     Development
-# PATH_OUT_BASE = "data/preprocessing_out/"
-# PATH_BASE_INPUT = "data"
+PATH_OUT_BASE = "data/preprocessing_out/"
+PATH_BASE_INPUT = "data"
 
 #
 PATH_OUT_HDF5 = os.path.join(PATH_OUT_BASE, "data_preprocessed.h5")
@@ -29,10 +30,12 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # If False previously processed winters will be kept and not replaced
 CLEAR_PREVIOUS = False
+CLEAR_PREVIOUS = True
+VERBOSE = True
 
 
 def get_data_paths(base_path, folder_prefixes, data_file_name,
-                   limit=-1) -> list:
+                   limit=-1, verbose=False) -> list:
     """
     Returns paths to the files that should be processed
     :param base_path: folder where the single years are stored,
@@ -41,6 +44,7 @@ def get_data_paths(base_path, folder_prefixes, data_file_name,
     that should be searched for data files, e.g. ["SSW_clim_sst_pert_"]
     :param data_file_name: str e.g. "atmos_daily.nc"
     :param limit: int number of winters to process. Use -1 to process all.
+    :param verbose
     :return: list of paths
     """
     # All input folders that start with one of the prefixes
@@ -56,11 +60,11 @@ def get_data_paths(base_path, folder_prefixes, data_file_name,
         paths += data_file_paths
 
     # We might want to keep previously processed datapoints
-    if not CLEAR_PREVIOUS:
+    if not CLEAR_PREVIOUS and os.path.exists(PATH_OUT_HDF5):
         # We want to keep the data we have already processed in a previous run
         preprocessed_winters = load_preprocessed_winters_identifiers(
             PATH_OUT_HDF5)
-        paths = remove_datapoints(paths, preprocessed_winters)
+        paths = remove_datapoints(paths, preprocessed_winters, verbose)
 
     # Limit the number of processed winters,
     # e.g. for development or computational reasons
@@ -69,12 +73,14 @@ def get_data_paths(base_path, folder_prefixes, data_file_name,
     return paths
 
 
-def remove_datapoints(paths: list, preprocessed_winters: list) -> list:
+def remove_datapoints(paths: list, preprocessed_winters: list,
+                      verbose: bool=False) -> list:
     """
     Removes preprocessed winters from
     :param paths: list of paths to data files
     :param preprocessed_winters: list of datapoint identifiers
     that should be removed
+    :param verbose
     :return: list of paths without preprocessed winters
     """
     already_processed_paths = list()
@@ -85,21 +91,27 @@ def remove_datapoints(paths: list, preprocessed_winters: list) -> list:
         if datapoint_identifier in preprocessed_winters:
             already_processed_paths.append(path)
 
-    paths = [path for path in paths if path not in already_processed_paths]
-    return paths
+    paths_reduced = [path for path in paths if path not in already_processed_paths]
+
+    if verbose:
+        print("Ommitting {} already processed data points"
+              .format(len(paths)-len(paths_reduced)))
+    return paths_reduced
 
 
-def process_single_year(path1: str, path2: str) -> tuple:
+def process_single_year(path1: str, path2: str, verbose: bool= False) -> tuple:
     """
     Processes the year contained in the files for the given paths
     :param path1: path of starting winter
     :param path2: path of ending winter
+    :param verbose
     :return: identifier for that winter, datapoint for that winter
     """
     path_elements = path1.split(os.sep)
     identifier = Datapoint.create_datapoint_identifier(path_elements[-3],
                                                        path_elements[-2])
-    print("Processing {}...".format(identifier))
+    if verbose:
+        print("Processing {}...".format(identifier))
     datapoint = DataPointFactory.create(path1, path2)
     return identifier, datapoint
 
@@ -148,10 +160,10 @@ def run_preprocessing(limit=-1):
     """
     # load all the paths we want to process
     paths = get_data_paths(PATH_BASE_INPUT, FOLDER_PREFIXES, DATA_FILE_NAME,
-                           limit)
+                           limit, True)
     # Run the job for all years
     dataset = Parallel(n_jobs=N_JOBS, verbose=VERBOSE)(
-        delayed(process_single_year)(paths[i], paths[i + 1]) for i in
+        delayed(process_single_year)(paths[i], paths[i + 1], True) for i in
         range(len(paths) - 1))
     # Convert list to dict
     # dict_keys are dataset identifiers: ['SSW_clim_sst_pert_2_year_2', ..]
@@ -166,7 +178,10 @@ def run_preprocessing(limit=-1):
         g = out_file.create_group(key)
         for variable in variables:
             # variable is a feature variable, e.g. wind_65
-            g[variable] = getattr(data, variable)
+            np_data = getattr(data, variable)
+            # Let's make sure we actually have data in that variable
+            assert isinstance(np_data, np.ndarray) and np_data is not None
+            g.create_dataset(variable, data=np_data, dtype=np.double)
     out_file.close()
 
 
