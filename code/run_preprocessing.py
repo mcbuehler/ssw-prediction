@@ -13,10 +13,10 @@ from joblib import Parallel, delayed
 # Path and file name configuration
 #     Production
 PATH_BASE_INPUT = "/mnt/ds3lab-scratch/dslab2018/bernatj/model"
-PATH_OUT_BASE = "/mnt/ds3lab-scratch/dslab2018_climate"
+PATH_OUT_BASE = "/mnt/ds3lab-scratch/climate/preprocessed_output"
 #     Development
-PATH_OUT_BASE = "data/preprocessing_out/"
-PATH_BASE_INPUT = "data"
+# PATH_OUT_BASE = "data/preprocessing_out/"
+# PATH_BASE_INPUT = "data"
 
 #
 PATH_OUT_HDF5 = os.path.join(PATH_OUT_BASE, "data_preprocessed.h5")
@@ -24,14 +24,13 @@ FOLDER_PREFIXES = ["SSW_clim_sst_", "fixed_sst_"]
 DATA_FILE_NAME = "atmos_daily.nc"
 
 # Job Configuration
-LIMIT = 10  # Number of winters to process
+LIMIT = -1  # Number of winters to process
 N_JOBS = 12  # Number of cores to use
 VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
-# If False previously processed winters will be kept and not replaced
-CLEAR_PREVIOUS = False
+# # If False previously processed winters will be kept and not replaced
+# CLEAR_PREVIOUS = False
 CLEAR_PREVIOUS = True
-VERBOSE = True
 
 
 def get_data_paths(base_path, folder_prefixes, data_file_name,
