@@ -181,7 +181,7 @@ def run_preprocessing(limit: int = -1) -> None:
     # All the variables we want to save
     variables = Datapoint.get_variables()
     # Output h5 file
-    out_file = h5py.File(PATH_OUT_HDF5, 'w')
+    out_file = h5py.File(PATH_OUT_HDF5, 'r+')
     for key, data in dataset.items():
         # Group is one data point, e.g. SSW_clim_sst_pert_2_year_2
         g = out_file.create_group(key)
