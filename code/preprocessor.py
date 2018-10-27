@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from netCDF4 import Dataset
 from bisect import bisect_right
-from dataset import Data
+from dataset import Datapoint
 
 
 class Preprocessor:
@@ -135,9 +135,9 @@ class Preprocessor:
             # calculate the x values to be interpolated for pressure and
             # latitude
             x_pres = self.first_winter.variables[
-                    'pfull'][idx_low_pres:idx_high_pres + 1].data
+                         'pfull'][idx_low_pres:idx_high_pres + 1].data
             x_lat = self.first_winter.variables[
-                    'lat'][idx_low_lat:idx_high_lat + 1].data
+                        'lat'][idx_low_lat:idx_high_lat + 1].data
             y = []
             # interpolate for every latitude
             for j in range(2):
@@ -185,13 +185,14 @@ class Preprocessor:
         for i in range(len(temp_interp)):
             for j in range(len(temp_interp[i])):
                 x = self.first_winter.variables[
-                    'pfull'][idx_low_pres:idx_high_pres + 1].data
+                        'pfull'][idx_low_pres:idx_high_pres + 1].data
                 y = temp[i, :, j]
                 f = interp1d(x, y)
                 temp_interp[i, j] = f(self.USEFUL_PRES)
 
         temp_interp_more = np.zeros(shape=(temp_interp.shape[0],
-                                    temp_interp.shape[1] + len(self.TEMP_LAT))
+                                           temp_interp.shape[1] + len(
+                                               self.TEMP_LAT))
                                     )
         start_ind = []
         level_info = []
@@ -203,9 +204,9 @@ class Preprocessor:
             # find where you have to interpolate in the reduced latitude
             # matrix
             idx_lat_before, idx_lat_after = self.get_pres_interpol(
-                                             'lat', level,
-                                             low_part=idx_low_lat
-                                             )
+                'lat', level,
+                low_part=idx_low_lat
+            )
             start_ind.append(idx_lat_before + 1)
             x = self.first_winter.variables[
                     'lat'][idx_low_level: idx_high_level + 1].data
@@ -246,7 +247,7 @@ class Preprocessor:
         """
         # feed the minimum latitude in the preprocess_temp method
         temp, latitudes = self.preprocess_temp(
-                lower_lat=min(limits, key=lambda t: t[0])[0])
+            lower_lat=min(limits, key=lambda t: t[0])[0])
         # computed the weights for the weighted average
         weights = np.cos(np.deg2rad(latitudes))
 
@@ -265,13 +266,12 @@ class Preprocessor:
         for i in range(len(temp)):
             for j in range(len(limits)):
                 average_temp[i, j] = np.average(
-                                                temp[i][limits_idx[j][0]:
-                                                        limits_idx[j][1]],
-                                                weights=weights[
-                                                    limits_idx[j][0]:
-                                                    limits_idx[j][1]
-                                                    ]
-                                                )
+                    temp[i][limits_idx[j][0]:limits_idx[j][1]],
+                    weights=weights[
+                            limits_idx[j][0]:
+                            limits_idx[j][1]
+                            ]
+                )
 
         return average_temp
 
@@ -298,19 +298,47 @@ class Preprocessor:
 
 
         """
-        data = Data()
-        data.temp_60_70 = temp[:, 0]
-        data.temp_80_90 = temp[:, 1]
-        data.temp_60_90 = temp[:, 2]
-        data.wind_60 = wind_60
-        data.wind_65 = wind_65
+        data_dict = dict(
+            temp_60_70=temp[:, 0],
+            temp_80_90=temp[:, 1],
+            temp_60_90=temp[:, 2],
+            wind_60=wind_60,
+            wind_65=wind_65)
+        data_point = Datapoint(**data_dict)
+        return data_point
+
+
+class DataPointFactory:
+    """
+    Factory class for creating datapoints
+    """
+
+    @staticmethod
+    def create(path1, path2) -> Datapoint:
+        """
+        Creates instance of Datapoint class containing data for one winter
+        :param path1: path to year where the beginning of the winter
+        should be extracted.
+        :param path2: path to year where the end of the winter
+        should be extracted.
+        :return: Datapoint
+        """
+        preprocess = Preprocessor(path1, path2)
+        wind_60 = preprocess.get_uwind(60)
+        wind_65 = preprocess.get_uwind(65)
+        temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
+        data = preprocess.construct_data_point(wind_60, wind_65, temp)
         return data
 
 
 if __name__ == '__main__':
-    preprocess = Preprocessor('data/atmos_daily_1.nc', 'data/atmos_daily_2.nc')
+    preprocess = Preprocessor('../data/atmos_daily_1.nc',
+                              '../data/atmos_daily_2.nc')
     wind_60 = preprocess.get_uwind(60)
     wind_65 = preprocess.get_uwind(65)
     temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
     data = preprocess.construct_data_point(wind_60, wind_65, temp)
-    # print(data.__dict__)
+
+    path1 = '../data/atmos_daily_1.nc'
+    path2 = '../data/atmos_daily_2.nc'
+    print(DataPointFactory.create(path1, path2).__dict__.keys())
