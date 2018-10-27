@@ -38,7 +38,7 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
 # CLEAR_PREVIOUS = False
-CLEAR_PREVIOUS = False
+CLEAR_PREVIOUS = True
 
 
 def get_data_paths(base_path: str, folder_prefixes: list, data_file_name: str,
@@ -181,7 +181,7 @@ def run_preprocessing(limit: int = -1) -> None:
     # All the variables we want to save
     variables = Datapoint.get_variables()
     # Output h5 file
-    out_file = h5py.File(PATH_OUT_HDF5, 'r+')
+    out_file = h5py.File(PATH_OUT_HDF5, 'a')
     for key, data in dataset.items():
         # Group is one data point, e.g. SSW_clim_sst_pert_2_year_2
         g = out_file.create_group(key)
@@ -196,8 +196,8 @@ def run_preprocessing(limit: int = -1) -> None:
 
 def run():
     # We remove the old h5 file
-    if CLEAR_PREVIOUS:
-        os.remove(PATH_OUTPUT_BASE)
+    if CLEAR_PREVIOUS and os.path.exists(PATH_OUT_HDF5):
+        os.remove(PATH_OUT_HDF5)
     # Process all years and save them to h5 file
     run_preprocessing(LIMIT)
     # Write the contents of the hdf5 file to csv files
