@@ -195,6 +195,9 @@ def run_preprocessing(limit: int = -1) -> None:
 
 
 def run():
+    # We remove the old h5 file
+    if CLEAR_PREVIOUS:
+        os.remove(PATH_OUTPUT_BASE)
     # Process all years and save them to h5 file
     run_preprocessing(LIMIT)
     # Write the contents of the hdf5 file to csv files
