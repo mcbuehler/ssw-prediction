@@ -2,7 +2,6 @@ import numpy as np
 from preprocessor import Preprocessor
 
 
-
 def UnT(data):
     """ Given a data matrix of winter, checks SSW events that conform to U&T definition:
 
@@ -28,6 +27,7 @@ def UnT(data):
                                 A mask of booleans which includes SSW dates for each winter day
 
         """
+
     def check_SSW(m_temp_gradient, ssw):
         return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
 
@@ -46,6 +46,11 @@ def UnT(data):
 def CP07(data):
     """ Given a data matrix of winter, checks SSW events that conform to CP07 definition:
 
+        Events occur when the zonal-mean zonal winds at 10 hPa and 60°N
+        fall below 0 m s–1 from Nov to Mar. Events must return to westerly
+        (>0 m s–1) for at least 20 consecutive days between events. The
+        winds must return to westerly for at least 10 consecutive days prior
+        to 30 Apr (or an event is considered a final warming).
 
                      Parameters
                         ----------
@@ -68,7 +73,7 @@ def CP07(data):
 def U65(data):
     """Given a data matrix of winter, checks SSW events that conform to U65 definition:
 
-
+       Identical to CP07, except using zonal-mean zonal wind at 65°N.
 
 
                     Parameters
@@ -167,6 +172,24 @@ definitions = {
 
 
 def create_labels(data, definition):
+    """Given a data matrix of winter and definition, checks whether an SSW happened that conforms to the given definition.
+
+                Parameters
+                ----------
+                     data: np.array
+                        data which contains timeseries for
+                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                        in the given order
+
+                     definition: str
+                            definition type (i.e. CP07)
+
+                Returns
+                -------
+                     SSWs: list[int]
+                            A mask of booleans which includes SSW dates for each winter day
+
+    """
     if definition not in definitions:
         raise Exception(
             "Definition {} does not exist in available definitions: {}"
