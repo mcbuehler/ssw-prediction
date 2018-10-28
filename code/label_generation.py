@@ -2,36 +2,108 @@ import numpy as np
 from preprocessor import Preprocessor
 
 
+
 def UnT(data):
+    """ Given a data matrix of winter, checks SSW events that conform to U&T definition:
+
+        Events occur when the zonal-mean zonal winds at 10 hPa and
+        60°N fall below 0 m s –1 from Nov to Mar. Events that do not also
+        have a meridional temperature gradient reversal (defined as the
+        zonal-mean temperatures averaged from 80° to 90°N minus the
+        temperatures averaged from 60° to 70°N) within ~10 days of the
+        circulation reversal are excluded. Events must return to westerly
+        (>0 m s –1 ) for at least 20 consecutive days between events. The
+        winds must return to westerly for at least 10 consecutive days
+        prior to 30 Apr (or an event is considered a final warming).
+
+                        Parameters
+                        ----------
+                             data: np.array which contains timeseries for
+                             [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                             in the given order
+
+                        Returns
+                        -------
+                             SSWs: list[int]
+                                A mask of booleans which includes SSW dates for each winter day
+
+        """
     def check_SSW(m_temp_gradient, ssw):
         return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
 
+    # temp_80_90 - temp_60_70
     m_temp_gradient = data[2] - data[1]
     potential_SSWs = SSWs_wind_reversal(data, 3)[1]
 
     SSWs = [ssw for ssw in potential_SSWs if check_SSW(m_temp_gradient, ssw)]
-    return len(SSWs) != 0, SSWs
+    SSWmask = np.zeros(data[1].shape, bool)
+
+    SSWmask[SSWs] = True
+
+    return SSWmask
 
 
 def CP07(data):
-    return SSWs_wind_reversal(data, 3)
+    """ Given a data matrix of winter, checks SSW events that conform to CP07 definition:
+
+
+                     Parameters
+                        ----------
+                             data: np.array which contains timeseries for
+                             [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                             in the given order
+
+                        Returns
+                        -------
+                             SSWs: list[int]
+                                A mask of booleans which includes SSW dates for each winter day
+    """
+    SSWs = SSWs_wind_reversal(data, 3)
+    SSWmask = np.zeros(data[1].shape, bool)
+
+    SSWmask[SSWs] = True
+    return SSWmask
 
 
 def U65(data):
-    return SSWs_wind_reversal(data, 4)
+    """Given a data matrix of winter, checks SSW events that conform to U65 definition:
+
+
+
+
+                    Parameters
+                    ----------
+                         data: np.array which contains timeseries for
+                         [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                         in the given order
+
+                    Returns
+                    -------
+                         SSWs: list[int]
+                            A mask of booleans which includes SSW dates for each winter day
+    """
+
+    SSWs = SSWs_wind_reversal(data, 4)
+    SSWmask = np.zeros(data[1].shape, bool)
+
+    SSWmask[SSWs] = True
+    return SSWmask
 
 
 def SSWs_wind_reversal(data, data_index):
-    """Given a data matrix of winter, checks whether
+    """Given a data matrix of winter, checks whether a wind reversal that might be an SSW happened or not.
 
             Parameters
             ----------
+                 data: np.array which contains timeseries for
+                         [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                         in the given order
+
+                 data_index: index of which array is going to be used (i.e. wind_60, wind_65)
 
             Returns
             -------
-                 : bool
-                    Whether an SSW event happened during given winter or not.
-                 SSWs: list[int]
+                 SSWs: list
                     Indices of days when SSW events happen.
 
             """
@@ -71,7 +143,7 @@ def SSWs_wind_reversal(data, data_index):
             # reset streak
             streak = 0
 
-    return len(SSWs) != 0, SSWs
+    return SSWs
 
 
 # TODO: Does not work, try to understand how it works for geopotential
@@ -101,7 +173,7 @@ def create_labels(data, definition):
                 .format(definition, list(definitions.keys())))
 
     f = definitions[definition]
-    return list(zip(*[f(xi) for xi in data]))
+    return [f(xi) for xi in data]
 
 
 def get_available_defitinions():
