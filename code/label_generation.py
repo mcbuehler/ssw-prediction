@@ -1,6 +1,6 @@
 import numpy as np
 from preprocessor import Preprocessor
-
+import h5py
 
 def UnT(data):
     """ Given a data matrix of winter, checks SSW events that conform to U&T definition:
@@ -33,7 +33,7 @@ def UnT(data):
 
     # temp_80_90 - temp_60_70
     m_temp_gradient = data[2] - data[1]
-    potential_SSWs = SSWs_wind_reversal(data, 3)[1]
+    potential_SSWs = SSWs_wind_reversal(data, 3)
 
     SSWs = [ssw for ssw in potential_SSWs if check_SSW(m_temp_gradient, ssw)]
     SSWmask = np.zeros(data[1].shape, bool)
@@ -150,8 +150,7 @@ def SSWs_wind_reversal(data, data_index):
 
     return SSWs
 
-
-# TODO: Does not work, try to understand how it works for geopotential
+#TODO: Fix there is a problem with this defn.
 def zpol_with_temp(data):
     # January February March
     jfm_timeseries = data[0][90:180]
@@ -159,8 +158,19 @@ def zpol_with_temp(data):
     jfm_std = np.std(jfm_timeseries)
 
     standardized_winter = (data[0] - jfm_mean) / jfm_std
-    SSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
-    return len(SSWs) != 0, SSWs
+    potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
+    SSWs = []
+
+    cur = None
+    for SSW in potentialSSWs:
+        if (cur is None or SSW - 60 > cur) and SSW < 180:
+            cur = SSW
+            SSWs.append(SSW)
+
+    SSWmask = np.zeros(data[0].shape, bool)
+
+    SSWmask[SSWs] = True
+    return SSWmask
 
 
 definitions = {
@@ -204,18 +214,23 @@ def get_available_defitinions():
 
 
 if __name__ == '__main__':
-    preprocess = Preprocessor('../data/atmos_daily_1.nc', '../data/atmos_daily_2.nc')
-    wind_60 = preprocess.get_uwind(60)
-    wind_65 = preprocess.get_uwind(65)
-    temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
-    data = preprocess.construct_data_point(wind_60, wind_65, temp)
 
-    # Create a dummmy array consisting of years
-    dat = np.array([[data.temp_60_90, data.temp_60_70, data.temp_80_90, data.wind_60, data.wind_65],
-                    [data.temp_60_90, data.temp_60_70, data.temp_80_90, data.wind_60, data.wind_65],
-                    [data.temp_60_90, data.temp_60_70, data.temp_80_90, data.wind_60, data.wind_65],
-                    [data.temp_60_90, data.temp_60_70, data.temp_80_90, data.wind_60, data.wind_65]])
+    filename = '../data/data_preprocessed.h5'
+    f = h5py.File(filename, 'r')
+    data_fields = ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
+    keys = list(f.keys())
 
-    labels = create_labels(dat, "CP07")
+    dat = np.array([[f[key][data_field] for data_field in data_fields] for key in keys])
+    labels = [create_labels(dat, definition) for definition in get_available_defitinions()]
 
-    print(labels)
+    f2 = h5py.File("../data/data_preprocessed_labeled.h5", "w")
+
+    for i, key in enumerate(keys):
+        g = f2.create_group(key)
+        print(i)
+        for var in data_fields:
+            g.create_dataset(var, data=f[key][var], dtype=np.double)
+        for j, label in enumerate(get_available_defitinions()):
+            g.create_dataset(label, data=labels[j][i], dtype=np.bool)
+
+    f2.close()
