@@ -1,6 +1,6 @@
-import numpy as np
-from preprocessor import Preprocessor
 import h5py
+import numpy as np
+
 
 def UnT(data):
     """ Given a data matrix of winter, checks SSW events that conform to U&T definition:
@@ -150,7 +150,8 @@ def SSWs_wind_reversal(data, data_index):
 
     return SSWs
 
-#TODO: Fix there is a problem with this defn.
+
+# TODO: Fix there is a problem with this defn.
 def zpol_with_temp(data):
     # January February March
     jfm_timeseries = data[0][90:180]
@@ -182,7 +183,8 @@ definitions = {
 
 
 def create_labels(data, definition):
-    """Given a data matrix of winter and definition, checks whether an SSW happened that conforms to the given definition.
+    """Given a data matrix of winter and definition, checks whether an SSW happened
+       that conforms to the given definition.
 
                 Parameters
                 ----------
@@ -227,7 +229,7 @@ if __name__ == '__main__':
 
     for i, key in enumerate(keys):
         g = f2.create_group(key)
-        print(i)
+
         for var in data_fields:
             g.create_dataset(var, data=f[key][var], dtype=np.double)
         for j, label in enumerate(get_available_defitinions()):
