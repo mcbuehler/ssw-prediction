@@ -17,9 +17,11 @@ def UnT(data):
 
                         Parameters
                         ----------
-                             data: np.array which contains timeseries for
-                             [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                             in the given order
+                            data: np.array
+                                data which contains timeseries for
+                                [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                                in the given order
+
 
                         Returns
                         -------
@@ -54,9 +56,11 @@ def CP07(data):
 
                      Parameters
                         ----------
-                             data: np.array which contains timeseries for
-                             [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                             in the given order
+                             data: np.array
+                                data which contains timeseries for
+                                [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                                in the given order
+
 
                         Returns
                         -------
@@ -78,9 +82,11 @@ def U65(data):
 
                     Parameters
                     ----------
-                         data: np.array which contains timeseries for
-                         [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                         in the given order
+                        data: np.array
+                        data which contains timeseries for
+                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                        in the given order
+
 
                     Returns
                     -------
@@ -100,9 +106,10 @@ def SSWs_wind_reversal(data, data_index):
 
             Parameters
             ----------
-                 data: np.array which contains timeseries for
-                         [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                         in the given order
+                 data: data: np.array
+                        data which contains timeseries for
+                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                        in the given order
 
                  data_index: index of which array is going to be used (i.e. wind_60, wind_65)
 
