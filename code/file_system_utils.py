@@ -17,30 +17,41 @@ def create_filename(prefix: str, index: Union[int, str], postfix: str,
     return os.path.join(path_prefix, "{}{}{}".format(prefix, index, postfix))
 
 
-def get_files_with_prefix(path: str, prefix: str,
-                          keep_path: bool = False) -> Iterable:
+def get_files(path: str, prefix: str = "", postfix: str = "",
+              keep_path: bool = False) -> Iterable:
     """
-    Returns the folders stored at path that start with prefix.
+    Returns the fiels stored at path that start with prefix and end with postfix.
     :param path:
     :param prefix:
+    :param postfix
     :param keep_path Prepends path to filename
     :return:
     """
     files = os.listdir(path)
-    files_filtered = filter(lambda f: f.startswith(prefix), files)
+    files_filtered = filter(
+        lambda f: f.startswith(prefix) and f.endswith(postfix), files)
     if keep_path:
         files_filtered = [os.path.join(path, f) for f in files_filtered]
     return files_filtered
 
 
-def get_data_file_paths(input_folder: str, data_file_name: str) -> Iterable:
+def get_data_file_paths(input_folder: str, data_file_prefix: str = "",
+                        data_file_postfix: str = ".nc") -> list:
     """
     Returns all data files stored in subfolders.
     Subfolders are assumed to be named in the format year_<index>,
      e.g. "year_82"
-    :param input_folder: folder containing subfolders starting with "year_..."
-    :param data_file_name: name of file in subfolders, e.g. "atmos_daily.nc"
+    :param input_folder: folder containing subfolders starting with "year_..." or "daymean"
+    :param data_file_prefix: prefix of data file, e.g. "atmos_daymean_"
+    :param data_file_postfix: postfix of data file, e.g. ".nc"
     :return:
     """
-    years = get_files_with_prefix(input_folder, "year_", keep_path=True)
-    return [os.path.join(year, data_file_name) for year in years]
+    data_file_paths = list()
+    # we look at all subfolders, whatever they are named
+    subfolders = os.listdir(input_folder)
+    for folder in subfolders:
+        subfolder_path = os.path.join(input_folder, folder)
+        data_files = get_files(subfolder_path, prefix=data_file_prefix,
+                               postfix=data_file_postfix, keep_path=True)
+        data_file_paths += data_files
+    return data_file_paths

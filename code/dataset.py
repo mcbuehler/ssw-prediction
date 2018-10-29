@@ -56,11 +56,11 @@ class Datapoint:
         return variables
 
     @staticmethod
-    def create_datapoint_identifier(folder: str, year: str) -> str:
+    def create_datapoint_identifier(simulation_name: str, subfolder: str, file: str) -> str:
         """
         Creates an identifier for a datapoint given its folder and year
         :param folder: folder name, e.g. SSW_clim_sst_pert_1
         :param year: year, e.g. year_81
-        :return: identifier for a datapoint, e.g. SSW_clim_sst_pert_1_year_81
+        :return: identifier for a datapoint, e.g. SSW_clim_sst_pert_1_year_81_atmos_daily
         """
-        return "{}_{}".format(folder, year)
+        return "{}_{}_{}".format(simulation_name, subfolder, file[:-3])
