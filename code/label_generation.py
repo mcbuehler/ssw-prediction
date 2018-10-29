@@ -186,15 +186,18 @@ def zpol_with_temp(data):
                             A mask of booleans which includes SSW dates for each winter day
     """
 
-    # January February March
+    # January February March timeseries
     jfm_timeseries = data[0][90:180]
     jfm_mean = np.mean(jfm_timeseries)
     jfm_std = np.std(jfm_timeseries)
 
+    # standardization of winter time-series using JFM mean
     standardized_winter = (data[0] - jfm_mean) / jfm_std
     potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
     SSWs = []
 
+    # If potential SSW is in the first 3 months of winter and there are at least
+    #2 months between SSWs
     cur = None
     for SSW in potentialSSWs:
         if (cur is None or SSW - 60 > cur) and SSW < 180:
