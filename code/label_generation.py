@@ -31,8 +31,8 @@ def UnT(data):
 
     """
 
-    def check_SSW(m_temp_gradient, ssw):
-        return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
+    check_SSW = lambda m_temp_gradient, ssw: \
+        any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
 
     # temp_80_90 - temp_60_70
     m_temp_gradient = data[2] - data[1]
