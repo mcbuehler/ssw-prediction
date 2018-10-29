@@ -160,6 +160,32 @@ def SSWs_wind_reversal(data, data_index):
 
 # TODO: Fix there is a problem with this defn.
 def zpol_with_temp(data):
+    """Given a data matrix of winter, checks SSW events that conform to ZPOL definition, but uses temperature
+       instead of geopotential:
+
+            Anomalies of zonal-mean geopotential heights at 10 hPa are found
+            following Gerber et al. (2010). The polar cap anomalies are found
+            by averaging (cosine weighted) anomalies from 60° to 90°N. This
+            (year-round) time series is standardized about the JFM mean (as in
+            Thompson et al. 2002). Events occur when the time series exceed
+            plus three standard deviations. An event that occurs within 60
+            days after another is excluded.
+
+
+                    Parameters
+                    ----------
+                        data: np.array
+                        data which contains timeseries for
+                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                        in the given order
+
+
+                    Returns
+                    -------
+                         SSWs: list[int]
+                            A mask of booleans which includes SSW dates for each winter day
+    """
+
     # January February March
     jfm_timeseries = data[0][90:180]
     jfm_mean = np.mean(jfm_timeseries)
