@@ -256,19 +256,23 @@ def get_available_defitinions():
     return list(definitions.keys())
 
 
-if __name__ == '__main__':
+def label_dataset(data_file_directory):
+    # Load data from h5 file
+    f = h5py.File(data_file_directory, 'r')
 
-    filename = '../data/data_preprocessed.h5'
-    f = h5py.File(filename, 'r')
+    # Get group names and dictionary names
     data_fields = \
         ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
     keys = list(f.keys())
 
+    # Get data and label it
     dat = np.array(
         [[f[key][data_field] for data_field in data_fields] for key in keys])
+
     labels = [create_labels(dat, definition) for definition in
               get_available_defitinions()]
 
+    # Persist the labeled data as a new h5 file
     f2 = h5py.File("../data/data_preprocessed_labeled.h5", "w")
 
     for i, key in enumerate(keys):
@@ -280,3 +284,7 @@ if __name__ == '__main__':
             g.create_dataset(label, data=labels[j][i], dtype=np.bool)
 
     f2.close()
+
+if __name__ == '__main__':
+    filename = '../data/data_preprocessed.h5'
+    label_dataset(filename)
