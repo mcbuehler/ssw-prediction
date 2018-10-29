@@ -3,32 +3,33 @@ import numpy as np
 
 
 def UnT(data):
-    """ Given a data matrix of winter, checks SSW events that conform to U&T definition:
+    """ Given a data matrix of winter, checks SSW events that conform
+    to U&T definition:
 
-        Events occur when the zonal-mean zonal winds at 10 hPa and
-        60°N fall below 0 m s –1 from Nov to Mar. Events that do not also
-        have a meridional temperature gradient reversal (defined as the
-        zonal-mean temperatures averaged from 80° to 90°N minus the
-        temperatures averaged from 60° to 70°N) within ~10 days of the
-        circulation reversal are excluded. Events must return to westerly
-        (>0 m s –1 ) for at least 20 consecutive days between events. The
-        winds must return to westerly for at least 10 consecutive days
-        prior to 30 Apr (or an event is considered a final warming).
+    Events occur when the zonal-mean zonal winds at 10 hPa and
+    60°N fall below 0 m s –1 from Nov to Mar. Events that do not also
+    have a meridional temperature gradient reversal (defined as the
+    zonal-mean temperatures averaged from 80° to 90°N minus the
+    temperatures averaged from 60° to 70°N) within ~10 days of the
+    circulation reversal are excluded. Events must return to westerly
+    (>0 m s –1 ) for at least 20 consecutive days between events. The
+    winds must return to westerly for at least 10 consecutive days
+    prior to 30 Apr (or an event is considered a final warming).
 
-                        Parameters
-                        ----------
-                            data: np.array
-                                data which contains timeseries for
-                                [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                                in the given order
+    Parameters
+    ----------
+        data: np.array
+            data which contains timeseries for
+            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+            in the given order
 
 
-                        Returns
-                        -------
-                             SSWs: list[int]
-                                A mask of booleans which includes SSW dates for each winter day
+    Returns
+    -------
+         SSWs: list[int]
+            A mask of booleans which includes SSW dates for each winter day
 
-        """
+    """
 
     def check_SSW(m_temp_gradient, ssw):
         return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
@@ -46,26 +47,27 @@ def UnT(data):
 
 
 def CP07(data):
-    """ Given a data matrix of winter, checks SSW events that conform to CP07 definition:
+    """ Given a data matrix of winter, checks SSW events that conform
+    to CP07 definition:
 
-        Events occur when the zonal-mean zonal winds at 10 hPa and 60°N
-        fall below 0 m s–1 from Nov to Mar. Events must return to westerly
-        (>0 m s–1) for at least 20 consecutive days between events. The
-        winds must return to westerly for at least 10 consecutive days prior
-        to 30 Apr (or an event is considered a final warming).
+    Events occur when the zonal-mean zonal winds at 10 hPa and 60°N
+    fall below 0 m s–1 from Nov to Mar. Events must return to westerly
+    (>0 m s–1) for at least 20 consecutive days between events. The
+    winds must return to westerly for at least 10 consecutive days prior
+    to 30 Apr (or an event is considered a final warming).
 
-                     Parameters
-                        ----------
-                             data: np.array
-                                data which contains timeseries for
-                                [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                                in the given order
+    Parameters
+    ----------
+         data: np.array
+            data which contains timeseries for
+            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+            in the given order
 
 
-                        Returns
-                        -------
-                             SSWs: list[int]
-                                A mask of booleans which includes SSW dates for each winter day
+    Returns
+    -------
+         SSWs: list[int]
+            A mask of booleans which includes SSW dates for each winter day
     """
     SSWs = SSWs_wind_reversal(data, 3)
     SSWmask = np.zeros(data[1].shape, bool)
@@ -75,23 +77,24 @@ def CP07(data):
 
 
 def U65(data):
-    """Given a data matrix of winter, checks SSW events that conform to U65 definition:
+    """Given a data matrix of winter, checks SSW events that conform
+    to U65 definition:
 
-       Identical to CP07, except using zonal-mean zonal wind at 65°N.
-
-
-                    Parameters
-                    ----------
-                        data: np.array
-                        data which contains timeseries for
-                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                        in the given order
+    Identical to CP07, except using zonal-mean zonal wind at 65°N.
 
 
-                    Returns
-                    -------
-                         SSWs: list[int]
-                            A mask of booleans which includes SSW dates for each winter day
+    Parameters
+    ----------
+        data: np.array
+        data which contains timeseries for
+        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+        in the given order
+
+
+    Returns
+    -------
+         SSWs: list[int]
+            A mask of booleans which includes SSW dates for each winter day
     """
 
     SSWs = SSWs_wind_reversal(data, 4)
@@ -102,23 +105,25 @@ def U65(data):
 
 
 def SSWs_wind_reversal(data, data_index):
-    """Given a data matrix of winter, checks whether a wind reversal that might be an SSW happened or not.
+    """Given a data matrix of winter, checks whether a wind reversal
+    that might be an SSW happened or not.
 
-            Parameters
-            ----------
-                 data: data: np.array
-                        data which contains timeseries for
-                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                        in the given order
+    Parameters
+    ----------
+         data: data: np.array
+                data which contains timeseries for
+                [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+                in the given order
 
-                 data_index: index of which array is going to be used (i.e. wind_60, wind_65)
+         data_index: index of which array is going to be used
+         (i.e. wind_60, wind_65)
 
-            Returns
-            -------
-                 SSWs: list
-                    Indices of days when SSW events happen.
+    Returns
+    -------
+         SSWs: list
+            Indices of days when SSW events happen.
 
-            """
+    """
 
     # an array of indices of the SSW events
     SSWs = []
@@ -160,30 +165,30 @@ def SSWs_wind_reversal(data, data_index):
 
 # TODO: Fix there is a problem with this defn.
 def zpol_with_temp(data):
-    """Given a data matrix of winter, checks SSW events that conform to ZPOL definition, but uses temperature
-       instead of geopotential:
+    """Given a data matrix of winter, checks SSW events that conform
+    to ZPOL definition, but uses temperature instead of geopotential:
 
-            Anomalies of zonal-mean geopotential heights at 10 hPa are found
-            following Gerber et al. (2010). The polar cap anomalies are found
-            by averaging (cosine weighted) anomalies from 60° to 90°N. This
-            (year-round) time series is standardized about the JFM mean (as in
-            Thompson et al. 2002). Events occur when the time series exceed
-            plus three standard deviations. An event that occurs within 60
-            days after another is excluded.
-
-
-                    Parameters
-                    ----------
-                        data: np.array
-                        data which contains timeseries for
-                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                        in the given order
+    Anomalies of zonal-mean geopotential heights at 10 hPa are found
+    following Gerber et al. (2010). The polar cap anomalies are found
+    by averaging (cosine weighted) anomalies from 60° to 90°N. This
+    (year-round) time series is standardized about the JFM mean (as in
+    Thompson et al. 2002). Events occur when the time series exceed
+    plus three standard deviations. An event that occurs within 60
+    days after another is excluded.
 
 
-                    Returns
-                    -------
-                         SSWs: list[int]
-                            A mask of booleans which includes SSW dates for each winter day
+    Parameters
+    ----------
+        data: np.array
+        data which contains timeseries for
+        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+        in the given order
+
+
+    Returns
+    -------
+         SSWs: list[int]
+            A mask of booleans which includes SSW dates for each winter day
     """
 
     # January February March timeseries
@@ -196,8 +201,8 @@ def zpol_with_temp(data):
     potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
     SSWs = []
 
-    # If potential SSW is in the first 3 months of winter and there are at least
-    #2 months between SSWs
+    # If potential SSW is in the first 3 months of winter and there
+    # are at least 2 months between SSWs
     cur = None
     for SSW in potentialSSWs:
         if (cur is None or SSW - 60 > cur) and SSW < 180:
@@ -220,28 +225,28 @@ definitions = {
 
 def create_labels(data, definition):
     """Given a data matrix of winter and definition, checks whether an SSW happened
-       that conforms to the given definition.
+    that conforms to the given definition.
 
-                Parameters
-                ----------
-                     data: np.array
-                        data which contains timeseries for
-                        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                        in the given order
+    Parameters
+    ----------
+         data: np.array
+            data which contains timeseries for
+            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
+            in the given order
 
-                     definition: str
-                            definition type (i.e. CP07)
+         definition: str
+                definition type (i.e. CP07)
 
-                Returns
-                -------
-                     SSWs: list[int]
-                            A mask of booleans which includes SSW dates for each winter day
+    Returns
+    -------
+         SSWs: list[int]
+                A mask of booleans which includes SSW dates for each winter day
 
     """
     if definition not in definitions:
         raise Exception(
             "Definition {} does not exist in available definitions: {}"
-                .format(definition, list(definitions.keys())))
+            .format(definition, list(definitions.keys())))
 
     f = definitions[definition]
     return [f(xi) for xi in data]
@@ -255,11 +260,14 @@ if __name__ == '__main__':
 
     filename = '../data/data_preprocessed.h5'
     f = h5py.File(filename, 'r')
-    data_fields = ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
+    data_fields = \
+        ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
     keys = list(f.keys())
 
-    dat = np.array([[f[key][data_field] for data_field in data_fields] for key in keys])
-    labels = [create_labels(dat, definition) for definition in get_available_defitinions()]
+    dat = np.array(
+        [[f[key][data_field] for data_field in data_fields] for key in keys])
+    labels = [create_labels(dat, definition) for definition in
+              get_available_defitinions()]
 
     f2 = h5py.File("../data/data_preprocessed_labeled.h5", "w")
 

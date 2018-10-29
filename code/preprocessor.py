@@ -312,7 +312,8 @@ class Preprocessor:
 
 
 if __name__ == '__main__':
-    preprocess = Preprocessor('../data/atmos_daily_1.nc', '../data/atmos_daily_2.nc')
+    preprocess = Preprocessor('../data/atmos_daily_1.nc',
+                              '../data/atmos_daily_2.nc')
     wind_60 = preprocess.get_uwind(60)
     wind_65 = preprocess.get_uwind(65)
     temp = preprocess.get_polar_temp([(60, 70), (80, 90), (60, 90)])
