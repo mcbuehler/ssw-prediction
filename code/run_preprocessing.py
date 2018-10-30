@@ -41,7 +41,7 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
 # CLEAR_PREVIOUS = False
-CLEAR_PREVIOUS = True
+CLEAR_PREVIOUS = False
 
 
 def remove_datapoints(paths: list, preprocessed_winters: list,
@@ -191,6 +191,7 @@ def run_preprocessing(limit: int = -1) -> None:
     # For avoiding to process winters a second time.
     preprocessed_winters = load_preprocessed_winters_identifiers(
         PATH_OUT_HDF5)
+    print("Found {} already preprocessed winters.".format(len(preprocessed_winters)))
 
     # Output h5 file
     out_file = h5py.File(PATH_OUT_HDF5, 'a')
@@ -216,6 +217,7 @@ def run():
             "Are you sure you want to delete {}? Press Ctrl+C to abort or enter to continue".format(
                 PATH_OUT_HDF5))
         os.remove(PATH_OUT_HDF5)
+        print("Removed {}".format(PATH_OUT_HDF5))
     # Process all years and save them to h5 file
     run_preprocessing(LIMIT)
     # Write the contents of the hdf5 file to csv files
