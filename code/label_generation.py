@@ -2,6 +2,10 @@ import h5py
 import numpy as np
 
 
+def check_SSW(m_temp_gradient, ssw):
+    return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
+
+
 def UnT(data):
     """ Given a data matrix of winter, checks SSW events that conform
     to U&T definition:
@@ -30,9 +34,6 @@ def UnT(data):
             A mask of booleans which includes SSW dates for each winter day
 
     """
-
-    check_SSW = lambda m_temp_gradient, ssw: \
-        any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
 
     # temp_80_90 - temp_60_70
     m_temp_gradient = data[2] - data[1]
@@ -284,6 +285,7 @@ def label_dataset(data_file_directory):
             g.create_dataset(label, data=labels[j][i], dtype=np.bool)
 
     f2.close()
+
 
 if __name__ == '__main__':
     filename = '../data/data_preprocessed.h5'
