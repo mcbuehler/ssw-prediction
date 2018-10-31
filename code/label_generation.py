@@ -273,7 +273,7 @@ def label_dataset(data_file_directory):
               get_available_defitinions()]
 
     # Persist the labeled data as a new h5 file
-    f2 = h5py.File("../data/data_preprocessed_labeled.h5", "w")
+    f2 = h5py.File(data_file_directory.split('.', 1)[0] + "_labeled.h5", "w")
 
     for i, key in enumerate(keys):
         g = f2.create_group(key)
