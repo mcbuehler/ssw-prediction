@@ -8,7 +8,7 @@ import numpy as np
 import label_generation
 
 
-class TestStringMethods(unittest.TestCase):
+class TestLabeling(unittest.TestCase):
 
     def setUp(self):
         f = h5py.File('../data/data_preprocessed.h5', 'r')
