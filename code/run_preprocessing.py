@@ -1,5 +1,3 @@
-from typing import Union
-
 import h5py
 
 from dataset import Datapoint
@@ -36,7 +34,8 @@ DATA_FILE_NAME = "atmos_daily.nc"
 
 # Job Configuration
 LIMIT = -1  # Number of winters to process
-N_JOBS = 12  # Number of cores to use
+N_JOBS = int(os.getenv("DSLAB_N_JOBS", 12))  # Number of cores to use
+print("N_JOBS: ", N_JOBS)
 VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
@@ -127,9 +126,11 @@ def run_single_simulation(simulation_folder, out_file: h5py.File,
                           ommit_identifiers: list = list()) -> int:
     """
     Runs all winters in given simulation.
-    :param simulation_folder: folder containing one subfolder containing simulation data for all years.
+    :param simulation_folder: folder containing one subfolder
+    containing simulation data for all years.
     :param out_file: output h5 file
-    :param ommit_identifiers: list of identifiers that should not be processed again.
+    :param ommit_identifiers: list of identifiers that should
+    not be processed again.
     :return: number of processed winters
     """
 
@@ -138,6 +139,7 @@ def run_single_simulation(simulation_folder, out_file: h5py.File,
         os.path.join(PATH_INPUT_BASE, simulation_folder))
     print("Processing {} datasets for simulation data in {}...".format(
         len(paths), simulation_folder))
+
     # Run the job for all years
     dataset = Parallel(n_jobs=N_JOBS, verbose=VERBOSE)(
         delayed(process_single_year)(paths[i], paths[i + 1], True,
@@ -176,11 +178,12 @@ def run_preprocessing(limit: int = -1) -> None:
     :return: None
     """
     # Collect all simulation folders, whatever they might be named
-    # The criterion is that they start with one of the prefixes in FOLDER_PREFIXES
+    # The criterion is that they start with one of the prefixes
+    # in FOLDER_PREFIXES
     simulation_folders = list()
     for folder_prefix in FOLDER_PREFIXES:
         simulation_folders += get_files(PATH_INPUT_BASE, prefix=folder_prefix,
-                                        keep_path=True)
+                                        keep_path=True, order_numerical=True)
     print("Found the following simulation folders:")
     print("\n".join(simulation_folders))
 
@@ -191,7 +194,8 @@ def run_preprocessing(limit: int = -1) -> None:
     # For avoiding to process winters a second time.
     preprocessed_winters = load_preprocessed_winters_identifiers(
         PATH_OUT_HDF5)
-    print("Found {} already preprocessed winters.".format(len(preprocessed_winters)))
+    print("Found {} already preprocessed winters.".format(
+        len(preprocessed_winters)))
 
     # Output h5 file
     out_file = h5py.File(PATH_OUT_HDF5, 'a')
@@ -214,7 +218,8 @@ def run():
     # We remove the old h5 file
     if CLEAR_PREVIOUS and os.path.exists(PATH_OUT_HDF5):
         input(
-            "Are you sure you want to delete {}? Press Ctrl+C to abort or enter to continue".format(
+            "Are you sure you want to delete {}? Press Ctrl+C to " +
+            "abort or enter to continue".format(
                 PATH_OUT_HDF5))
         os.remove(PATH_OUT_HDF5)
         print("Removed {}".format(PATH_OUT_HDF5))
