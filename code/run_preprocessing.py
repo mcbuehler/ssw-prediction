@@ -40,7 +40,7 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
 # CLEAR_PREVIOUS = False
-CLEAR_PREVIOUS = False
+CLEAR_PREVIOUS = bool(os.getenv("DSLAB_CLEAR_PREVIOUS", 0))
 
 
 def remove_datapoints(paths: list, preprocessed_winters: list,
@@ -218,9 +218,8 @@ def run():
     # We remove the old h5 file
     if CLEAR_PREVIOUS and os.path.exists(PATH_OUT_HDF5):
         input(
-            "Are you sure you want to delete {}? Press Ctrl+C to " +
-            "abort or enter to continue".format(
-                PATH_OUT_HDF5))
+            "Are you sure you want to delete {}? Press Ctrl+C to \
+abort or enter to continue".format(PATH_OUT_HDF5))
         os.remove(PATH_OUT_HDF5)
         print("Removed {}".format(PATH_OUT_HDF5))
     # Process all years and save them to h5 file

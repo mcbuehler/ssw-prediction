@@ -30,7 +30,6 @@ def reorder_numerically(file_list: Iterable) -> list:
 
     def sort_function(filename):
         numbers = re.findall(r'\d+', filename)
-        print(numbers)
         if len(numbers):
             return int(numbers[0])
         return 0
@@ -58,7 +57,6 @@ def get_files(path: str, prefix: str = "", postfix: str = "",
         lambda f: f.startswith(prefix) and f.endswith(postfix), files)
     if order_numerical:
         files_filtered = reorder_numerically(files_filtered)
-    print("Processing files in the following order:", files_filtered)
     if keep_path:
         files_filtered = [os.path.join(path, f) for f in files_filtered]
     return files_filtered
