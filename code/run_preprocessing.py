@@ -40,8 +40,7 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
 # CLEAR_PREVIOUS = False
-CLEAR_PREVIOUS = bool(os.getenv("DSLAB_CLEAR_PREVIOUS", 0))
-
+CLEAR_PREVIOUS = os.getenv("DSLAB_CLEAR_PREVIOUS", 0) == 1
 
 def remove_datapoints(paths: list, preprocessed_winters: list,
                       verbose: bool = False) -> list:
