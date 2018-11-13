@@ -1,5 +1,6 @@
 import sys
 from collections import Iterable
+from enum import Enum
 
 import numpy as np
 
@@ -64,3 +65,18 @@ class Datapoint:
         :return: identifier for a datapoint, e.g. SSW_clim_sst_pert_1_year_81
         """
         return "{}_{}".format(folder, year)
+
+
+class DatapointKey:
+    TEMP_60_70 = "temp_60_70"
+    TEMP_80_90 = "temp_80_90"
+    TEMP_60_90 = "temp_60_90"
+    WIND_60 = "wind_60"
+    WIND_65 = "wind_65"
+
+    CP07 = "CP07"
+    UT = "U&T"
+    U65 = "U65"
+    ZPOL = "ZPOL_temp"
+
+
