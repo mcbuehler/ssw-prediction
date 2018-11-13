@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import argparse
 
 
 def check_SSW(m_temp_gradient, ssw):
@@ -257,15 +258,16 @@ def get_available_defitinions():
     return list(definitions.keys())
 
 
-def label_dataset(data_file_directory):
+def label_dataset(input_dir, output_dir, overwrite):
+    mode = 'w' if overwrite else 'a'
     # Load data from h5 file
-    f = h5py.File(data_file_directory, 'r')
+    f = h5py.File(input_dir, 'r')
+    f2 = h5py.File(output_dir, mode)
 
     # Get group names and dictionary names
     data_fields = \
         ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
-    keys = list(f.keys())
-
+    keys = list(set(f.keys()) - set(f2.keys()))
     # Get data and label it
     dat = np.array(
         [[f[key][data_field] for data_field in data_fields] for key in keys])
@@ -273,8 +275,6 @@ def label_dataset(data_file_directory):
     labels = [create_labels(dat, definition) for definition in
               get_available_defitinions()]
 
-    # Persist the labeled data as a new h5 file
-    f2 = h5py.File(filename[::-1].split('.', 1)[1][::-1] + "_labeled.h5", "w")
 
     for i, key in enumerate(keys):
         g = f2.create_group(key)
@@ -288,5 +288,11 @@ def label_dataset(data_file_directory):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_path", help="input h5 file (unlabeled) used to create labeled data.")
+    parser.add_argument("output_path", metavar='o', help="output h5 file (to be labeled) to write labeled data.")
+    parser.add_argument('-w', action='store_true')
+
+    args = parser.parse_args()
     filename = '../data/data_preprocessed.h5'
-    label_dataset(filename)
+    label_dataset(args.input_path, args.output_path, args.w)
