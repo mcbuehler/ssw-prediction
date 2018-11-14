@@ -1,8 +1,8 @@
 import h5py
 import numpy as np
-# import sys
 import pickle
 import pandas as pd
+import argparse
 from tsfresh import extract_features
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -10,47 +10,45 @@ from xgboost import XGBClassifier
 
 
 class ManualAndXGBoost:
-    matches = {
-            'CP07': ['wind_60'],
-            'U&T': ['temp_80_90', 'temp_60_70', 'wind_60'],
-            'U65': ['wind_65'],
-            'ZPOL_temp': ['temp_60_90']
-            }
+    features = ['wind_60', 'wind_65', 'temp_60_90']
 
-    def __init__(self, definition, path, pickling, pickle_path):
+    def __init__(self, definition, path, pickle_path):
         self.definition = definition
         self.path = path
-        self.pickling = pickling
         self.pickle_path = pickle_path
 
-    def get_useful_variables(self):
+    def get_labels_variables(self, only_labels):
         data = []
         labels = []
+
         with h5py.File(self.path, 'r') as f:
             for winter, timeseries in f.items():
                 for key, value in timeseries.items():
                     if key == self.definition:
                         labels.append(int(np.any(value[:])))
-                    if key in self.matches[self.definition]:
-                        data.append(np.array(value[:]))
 
-        if self.definition == 'U&T':
-            new_data = []
-            for i in range(len(data)):
-                if i % 3 == 2:
-                    new_data.append(data[i])
-                elif i % 3 == 1:
-                    new_data.append(data[i] - data[i-1])
-            data = new_data[:]
+                    if not only_labels:
+                        if key in self.features:
+                            data.append(np.array(value[:]))
 
         data = np.array(data)
         labels = np.array(labels)
 
-        return data, labels
+        if only_labels:
+            return labels
+        else:
+            return data, labels
 
     def preprocess(self):
-        if self.pickling:
-            data, labels = self.get_useful_variables()
+        try:
+            with open(str(self.pickle_path), 'rb') as f:
+                features, self.feature_keys = pickle.load(f)
+            features = np.array(features)
+            labels = self.get_labels_variables(only_labels=True)
+        except FileNotFoundError:
+            print("Didn't find the .pkl file of the features. Producing it",
+                  "now, under the pickle path folder")
+            data, labels = self.get_labels_variables(only_labels=False)
             length = data.shape[1]
             features = []
             flag = True
@@ -61,28 +59,33 @@ class ManualAndXGBoost:
                 X = extract_features(for_tsfresh, column_id='id',
                                      column_sort='time')
                 if flag:
-                    self.feature_keys = X.columns.values
+                    temp_feature_keys = X.columns.values
                     flag = False
+                    self.feature_keys = []
+                    keys_features_length = len(temp_feature_keys)
+                    features_length = len(self.features)
+                    for i in range(keys_features_length*features_length):
+                        quotient = int(i / keys_features_length)
+                        self.feature_keys.append(
+                                self.features[quotient] + "_" +
+                                temp_feature_keys[
+                                    i-quotient*keys_features_length]
+                                )
+
                 features.append(X.values[0])
 
-            if self.definition == 'U&T':
-                new_features = []
-                for i, feature in enumerate(features):
-                    if i % 2 == 1:
-                        new_features.append(np.concatenate((features[i],
-                                            features[i-1]), axis=0))
+            new_features = []
+            for i, feature in enumerate(features):
+                if i % 3 == 2:
+                    new_features.append(np.concatenate((features[i],
+                                        features[i-1], features[i-2]),
+                                        axis=0))
 
-                features = new_features[:]
+            features = new_features[:]
             features = np.asarray(features)
             with open(str(self.pickle_path), 'wb') as f:
-                pickle.dump([features, data, labels], f)
-        else:
-            with open(str(self.pickle_path), 'rb') as f:
-                features, data, labels = pickle.load(f)
-            features = np.array(features)
+                pickle.dump([features, self.feature_keys], f)
 
-        print(np.unique(labels, return_counts=True))
-        print(type(features), type(labels))
         X_train, X_test, y_train, y_test = train_test_split(
                         features, labels, test_size=0.2,
                         stratify=labels, random_state=42)
@@ -91,10 +94,13 @@ class ManualAndXGBoost:
     def train(self, X_train, y_train):
         model = XGBClassifier()
         model.fit(X_train, y_train)
-        max_imp = max(model.feature_importances_)
-        max_idxs = [i for i, j in enumerate(model.feature_importances_)
-                    if j == max_imp]
-        print(self.feature_keys[max_idxs[0]])
+        top_5 = sorted(model.feature_importances_, reverse=True)[:5]
+        max_idxs = []
+        for i in range(5):
+            for k, j in enumerate(model.feature_importances_):
+                if j == top_5[i]:
+                    max_idxs.append(self.feature_keys[k])
+
         return model
 
     def test(self, model, X_test, y_test):
@@ -105,9 +111,37 @@ class ManualAndXGBoost:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='A simple classification \
+            scheme using feature engineering and the XGBoostClassifier')
+    parser.add_argument(
+            "-d",
+            "--definition",
+            choices=('CP07', 'U65', 'ZPOL', 'U&T'),
+            help="Choose the definition that you want to run classification",
+            action="store",
+            default="CP07"
+           )
+    parser.add_argument(
+            "-i",
+            "--input_path",
+            help="Choose the input path where the data are",
+            action="store",
+            default="data/data_preprocessed_labeled.h5"
+            )
+    parser.add_argument(
+            "-o",
+            "--output_path",
+            help="Choose the output path of the pickle file",
+            action="store",
+            default="data/"
+            )
+    args = parser.parse_args()
+    pickle_path = args.output_path + "features_" + args.definition + ".pkl"
     test = ManualAndXGBoost(
-            'U&T', 'data/data_preprocessed_labeled.h5', True,
-            'data/data_labels_features_U&T.pkl')
+            definition=args.definition,
+            path=args.input_path,
+            pickle_path=pickle_path
+            )
     X_train, X_test, y_train, y_test = test.preprocess()
     model = test.train(X_train, y_train)
     accuracy = test.test(model, X_test, y_test)
