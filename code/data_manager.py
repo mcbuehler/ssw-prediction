@@ -4,7 +4,7 @@ import h5py
 
 class DataManager:
     """
-    Class that faciliates loading data from the h5 File
+    Class that facilitates loading data from the h5 File
     """
 
     def __init__(self, data_file_path):
