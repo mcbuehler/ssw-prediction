@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import os
 
 
 def check_SSW(m_temp_gradient, ssw):
@@ -253,40 +254,47 @@ def create_labels(data, definition):
     return [f(xi) for xi in data]
 
 
-def get_available_defitinions():
+def get_available_definitions():
     return list(definitions.keys())
 
 
-def label_dataset(data_file_directory):
+def label_dataset(path_in, path_out):
+    print("Labelling data from {}".format(path_in))
     # Load data from h5 file
-    f = h5py.File(data_file_directory, 'r')
+    f = h5py.File(path_in, 'r')
 
     # Get group names and dictionary names
     data_fields = \
         ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
     keys = list(f.keys())
 
+    print("Processing data...")
     # Get data and label it
     dat = np.array(
         [[f[key][data_field] for data_field in data_fields] for key in keys])
 
+    print("Creating labels...")
     labels = [create_labels(dat, definition) for definition in
-              get_available_defitinions()]
+              get_available_definitions()]
 
+    print("Writing labelled outputs...")
     # Persist the labeled data as a new h5 file
-    f2 = h5py.File(data_file_directory.split('.', 1)[0] + "_labeled.h5", "w")
+    f2 = h5py.File(path_out, "w")
 
     for i, key in enumerate(keys):
         g = f2.create_group(key)
 
         for var in data_fields:
             g.create_dataset(var, data=f[key][var], dtype=np.double)
-        for j, label in enumerate(get_available_defitinions()):
+        for j, label in enumerate(get_available_definitions()):
             g.create_dataset(label, data=labels[j][i], dtype=np.bool)
 
     f2.close()
+    print("Written to {}".format(path_out))
 
 
 if __name__ == '__main__':
-    filename = '../data/data_preprocessed.h5'
-    label_dataset(filename)
+    path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
+    path_in = os.path.join(path_preprocessed, "data_preprocessed.h5")
+    path_out = os.path.join(path_preprocessed, "data_labeled.h5")
+    label_dataset(path_in, path_out)
