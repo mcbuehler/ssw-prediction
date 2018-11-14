@@ -8,6 +8,14 @@ import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
 
+import signal
+import sys
+
+
+def signal_handler(sig, frame):
+        print('You pressed Ctrl+C!')
+        sys.exit(0)
+
 
 def check_environment_variables():
     required_environ_variables = ["DSLAB_CLIMATE_BASE_INPUT",
@@ -215,6 +223,9 @@ def run_preprocessing(limit: int = -1) -> None:
 
 
 def run():
+    # Signal listener to shut down process in case it is interrupted
+    signal.signal(signal.SIGINT, signal_handler)
+
     # We remove the old h5 file
     if CLEAR_PREVIOUS and os.path.exists(PATH_OUT_HDF5):
         input(
