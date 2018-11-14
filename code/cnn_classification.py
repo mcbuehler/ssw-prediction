@@ -8,11 +8,6 @@ from sklearn.model_selection import train_test_split
 # Device configuration
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-# Hyper parameters
-num_epochs = 100
-batch_size = 16
-learning_rate = 0.001
-
 
 class SSWDataset(data.Dataset):
     data_to_use = {
@@ -73,58 +68,90 @@ class ConvNet(nn.Module):
         return out
 
 
+class ConvNetClassifier():
+
+    def __init__(self, file_path, label_type, num_epochs=100,
+                 batch_size=16, learning_rate=0.001):
+
+        self.label_type = label_type
+        self.learning_rate = learning_rate
+        self.num_epochs = num_epochs
+
+        train_dataset = SSWDataset(file_path, self.label_type)
+        test_dataset = SSWDataset(file_path, self.label_type, train=False)
+
+        # Data loader
+        self.train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                        batch_size=batch_size,
+                                                        shuffle=True)
+
+        self.test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                                       batch_size=batch_size,
+                                                       shuffle=False)
+
+        num_ts = len(SSWDataset.data_to_use[self.label_type])
+        self.model = ConvNet(num_ts).to(device)
+
+    def train(self):
+
+        self.model.train()
+
+        # Loss and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(self.model.parameters(),
+                                     lr=self.learning_rate)
+
+        total_step = len(self.train_loader)
+
+        for epoch in range(self.num_epochs):
+            for i, (winters, labels) in enumerate(self.train_loader):
+                winters = winters.to(device)
+                labels = labels.to(device)
+
+                # Forward pass
+                outputs = self.model(winters)
+                loss = criterion(outputs, labels)
+
+                # Backward and optimize
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+                      .format(epoch + 1, self.num_epochs, i + 1,
+                              total_step, loss.item()))
+
+    def test(self):
+
+        self.model.eval()
+
+        with torch.no_grad():
+            correct = 0
+            total = 0
+
+            for winters, labels in self.test_loader:
+                winters = winters.to(device)
+                labels = labels.to(device)
+
+                outputs = self.model(winters)
+                _, predicted = torch.max(outputs.data, 1)
+
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+            print('Test Accuracy of the model on the {} test winters: {} %'.
+                  format(len(self.test_loader.dataset), 100 * correct / total))
+
+
 if __name__ == '__main__':
     filename = '../data/data_preprocessed_labeled.h5'
-    definition = "CP07"
+    definition = "ZPOL_temp"
 
-    train_dataset = SSWDataset(filename, definition)
-    test_dataset = SSWDataset(filename, definition, train=False)
+    classifier = ConvNetClassifier(filename, definition)
+    classifier.train()
+    classifier.test()
 
-    # Data loader
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True)
-
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                              batch_size=1,
-                                              shuffle=False)
-
-    model = ConvNet(len(SSWDataset.data_to_use[definition])).to(device)
-
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    # Train the model
-    total_step = len(train_loader)
-    for epoch in range(num_epochs):
-        for i, (images, labels) in enumerate(train_loader):
-            images = images.to(device)
-            labels = labels.to(device)
-
-            # Forward pass
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-
-            # Backward and optimize
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            if (i + 1) % 100 == 0:
-                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                      .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
-
-    model.eval()  # eval mode (batchnorm uses moving mean/variance instead of mini-batch mean/variance)
-    with torch.no_grad():
-        correct = 0
-        total = 0
-        for images, labels in test_loader:
-            images = images.to(device)
-            labels = labels.to(device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-        print('Test Accuracy of the model on the {} test winters: {} %'.format(len(test_loader), 100 * correct / total))
+    # CP07 %98.5
+    # U65 %94.9
+    # ZPOL_temp %53
+    # U&T %93.45
