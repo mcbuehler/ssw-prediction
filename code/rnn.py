@@ -60,8 +60,8 @@ class SSWPredictorLSTM(nn.Module):
 
 def load_input_data():
     dm = DataManager(INPUT_FILE)
-    train_feature = dm._get_data_for_variable("wind_60")
-    train_label = dm._get_data_for_variable("CP07")
+    train_feature = dm.get_data_for_variable("wind_60")
+    train_label = dm.get_data_for_variable("CP07")
     # Output should be iterable with features, label for train and test
     # shape (1372, 2, 210)
     return train_feature, train_label
