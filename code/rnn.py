@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
-
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import h5py
+import os
+
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+
+from data_manager import DataManager
 
 torch.manual_seed(1)
 
 ######################################################################
+# Code based on https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
 
-BATCH_SIZE = 1
+LEARNING_RATE = 0.1
+N_EPOCHS = 300
+BATCH_SIZE = 128
 SEQ_LEN = 210
 INPUT_DIM = 1
 HIDDEN_DIM = 1  # what is this exactly?
+INPUT_FILE = os.getenv("DSLAB_CLIMATE_LABELED_DATA")  # local: "../data/labeled_output/data_preprocessed_labeled.h5"
 
 
 class SSWPredictorLSTM(nn.Module):
@@ -38,46 +47,70 @@ class SSWPredictorLSTM(nn.Module):
 
     def forward(self, sequence_data):
         assert len(sequence_data) > 0
+        sequence_data = np.transpose(sequence_data, (1, 0,))
+        sequence_data = np.reshape(sequence_data, (210, -1, 1))
+        sequence_data = torch.FloatTensor(sequence_data)
 
-        for day in sequence_data:
-            # Step through the sequence one element at a time.
-            # after each step, hidden contains the hidden state.
-            out, self.hidden = self.lstm(day.view(1, 1, -1), self.hidden)
+        out, self.hidden = self.lstm(sequence_data, self.hidden)
 
-        ssw_space = self.hidden2ssw(out.view(len(sequence_data), -1))
-        ssw_score = F.log_softmax(ssw_space, dim=1)
+        ssw_space = self.hidden2ssw(sequence_data)
+        ssw_score = F.log_softmax(ssw_space, dim=0)
         return ssw_score
 
 
 def load_input_data():
-    file = h5py.File("data/labeled_output/data_preprocessed_labeled.h5", "r")
-    # TODO: implement
-    # Output should be iterable with features, label
-    return list(), list()
+    dm = DataManager(INPUT_FILE)
+    train_feature = dm._get_data_for_variable("wind_60")
+    train_label = dm._get_data_for_variable("CP07")
+    # Output should be iterable with features, label for train and test
+    # shape (1372, 2, 210)
+    return train_feature, train_label
 
-data_train, data_test = load_input_data()
-exit()
+all_features, all_labels = load_input_data()
+
+
+train_features, test_features, train_labels, test_labels = train_test_split(all_features, all_labels, test_size=0.2, random_state=42)
+N = len(all_features)
 
 model = SSWPredictorLSTM(INPUT_DIM, HIDDEN_DIM)
 # negative log likelihood loss
-loss_function = nn.NLLLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.1)
+criterion = nn.NLLLoss()
+# loss_function = nn.CrossEntropyLoss()
+optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
-for epoch in range(300):  # again, normally you would NOT do 300 epochs, it is toy data
-    for features, label in data_train:
-        # Step 1. Remember that Pytorch accumulates gradients.
-        # We need to clear them out before each instance
-        model.zero_grad()
 
-        # Also, we need to clear out the hidden state of the LSTM,
-        # detaching it from its history on the last instance.
-        model.hidden = model.init_hidden()
+def sample_indices(n_sampled, n):
+    return np.random.random_integers(0, n-1, n_sampled)
 
-        # Step 3. Run our forward pass.
-        tag_scores = model(features)
 
-        # Step 4. Compute the loss, gradients, and update the parameters by
-        #  calling optimizer.step()
-        loss = loss_function(tag_scores, label)
-        loss.backward()
-        optimizer.step()
+for epoch in range(N_EPOCHS):  # again, normally you would NOT do 300 epochs, it is toy data
+    print(epoch)
+    loss = 0
+
+    indices = sample_indices(BATCH_SIZE, len(train_features))
+
+    features = torch.FloatTensor(train_features[indices, :])
+    labels = train_labels[indices, :].astype(np.int)
+    labels = torch.LongTensor(np.transpose(labels, (1,0)))
+
+    # Step 1. Remember that Pytorch accumulates gradients.
+    # We need to clear them out before each instance
+    model.zero_grad()
+
+    # Also, we need to clear out the hidden state of the LSTM,
+    # detaching it from its history on the last instance.
+    model.hidden = model.init_hidden()
+
+    # Step 3. Run our forward pass.
+    tag_scores = model(features)
+    for i in range(BATCH_SIZE):
+        predictions_i = tag_scores[:,i,:]
+        labels_i = labels[:, i]
+        loss += criterion(predictions_i, labels_i)
+
+    print(loss)
+    loss.backward()
+
+    optimizer.step()
+
+
