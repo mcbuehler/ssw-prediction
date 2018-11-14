@@ -7,17 +7,55 @@ from tsfresh import extract_features
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
+from matplotlib import pyplot
 
 
 class ManualAndXGBoost:
+    """A class that receives as input the processed data and the definition that
+    you want classification for and does classification using the XGBoost
+    Classifier.
+
+    Attributes
+    ----------
+    features: list
+        The initial features used from the array of features that we have
+    """
+
     features = ['wind_60', 'wind_65', 'temp_60_90']
 
     def __init__(self, definition, path, pickle_path):
+        """the constructor of the ManualAndXgboost class
+
+        Parameters
+        ----------
+            definition: string
+                the definition that you want to do classification for
+            path: string
+                the path where the input data are
+            pickle_path: string
+                the path where you will store the pickle file that contains the
+                labels
+        """
         self.definition = definition
         self.path = path
         self.pickle_path = pickle_path
 
     def get_labels_variables(self, only_labels):
+        """Gets the data and according to the definition that the classification
+        should be done for extracts the relevant labels and the features
+
+        Parameters
+        ----------
+            only_labels: boolean
+                A flag to decide if you are going to return both labels and
+                features or just labels
+        Returns
+        -------
+            data: numpy array
+                A numpy array of the relevant features for the definition used
+            labels: numpy array
+                A numpy array of the relevant labels for the definition used
+        """
         data = []
         labels = []
 
@@ -40,6 +78,24 @@ class ManualAndXGBoost:
             return data, labels
 
     def preprocess(self):
+        """This function produces the train and the test split of the features
+        as well as the train and the test split of the labels. Multiple things
+        are happening. First of all it tries to read the already processed
+        features from tsfresh from a pickle file. If they are found available
+        it uses them instead of calculating them again.
+
+        Returns
+        -------
+            X_train: numpy array
+                A numpy array of shape [num_data x num_features] the training
+                data
+            X_test: numpy array
+                A numpy array of shape [num_data x num_features] the test data
+            y_train: numpy array
+                A numpy array of shape [num_data x 1] the training labels
+            y_test: numpy array
+                A numpy array of shape [num_data x 1] the test labels
+        """
         try:
             with open(str(self.pickle_path), 'rb') as f:
                 features, self.feature_keys = pickle.load(f)
@@ -94,13 +150,17 @@ class ManualAndXGBoost:
     def train(self, X_train, y_train):
         model = XGBClassifier()
         model.fit(X_train, y_train)
-        top_5 = sorted(model.feature_importances_, reverse=True)[:5]
+        top_3 = sorted(model.feature_importances_, reverse=True)[:3]
         max_idxs = []
-        for i in range(5):
+        for i in range(3):
             for k, j in enumerate(model.feature_importances_):
-                if j == top_5[i]:
+                if j == top_3[i] and self.feature_keys[k] not in max_idxs:
                     max_idxs.append(self.feature_keys[k])
 
+        print(max_idxs)
+        pyplot.title("Feature importance for definition:" + self.definition)
+        pyplot.bar(list(range(1, 4)), top_3)
+        pyplot.show()
         return model
 
     def test(self, model, X_test, y_test):
@@ -116,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument(
             "-d",
             "--definition",
-            choices=('CP07', 'U65', 'ZPOL', 'U&T'),
+            choices=('CP07', 'U65', 'ZPOL_temp', 'U&T'),
             help="Choose the definition that you want to run classification",
             action="store",
             default="CP07"
