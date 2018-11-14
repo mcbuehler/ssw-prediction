@@ -15,49 +15,61 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from feature_extractor import FeatureExtractor
+import os
 
-data_file = "../data/preprocessed_output/data_labeled.h5"
+"""
+Please note that this file is not documented carefully as 
+it only contains experimental code.
+"""
 
-extractor = FeatureExtractor(data_file)
-n_bins = 20
 
-target = DK.CP07
+def run(path_data, path_plots):
+    extractor = FeatureExtractor(path_data)
+    n_bins = 20
 
-variables = [DK.TEMP_60_70, DK.TEMP_80_90, DK.TEMP_60_90, DK.WIND_60, DK.WIND_65]
+    target = DK.CP07
 
-#for variable in variables:
+    # variables = [DK.TEMP_60_70, DK.TEMP_80_90, DK.TEMP_60_90, DK.WIND_60, DK.WIND_65]
 
-variable = "TEMP_60_90 + WIND"
-X_temp = extractor.hist(DK.TEMP_60_90, n_bins=n_bins)
-X_wind60 = extractor.hist(DK.WIND_60, n_bins=n_bins)
-X_wind65 = extractor.hist(DK.WIND_65, n_bins=n_bins)
+    #for variable in variables:
 
-X = np.concatenate([X_temp, X_wind60, X_wind65], axis=1)
+    variable = "TEMP_60_90 + WIND"
+    X_temp = extractor.hist(DK.TEMP_60_90, n_bins=n_bins)
+    X_wind60 = extractor.hist(DK.WIND_60, n_bins=n_bins)
+    X_wind65 = extractor.hist(DK.WIND_65, n_bins=n_bins)
 
-y = extractor.yearly_label(target)
+    X = np.concatenate([X_temp, X_wind60, X_wind65], axis=1)
 
-classifiers = [
-    RandomForestClassifier(n_estimators=100),
-    AdaBoostClassifier(),
-    XGBClassifier(n_estimators=100),
-    #SVC(),
-    LogisticRegression(),
-    KNeighborsClassifier(n_neighbors=20),
-    GaussianNB()
-    ]
+    y = extractor.yearly_label(target)
 
-scores = [cross_val_score(clf, X, y, cv=5, scoring=make_scorer(f1_score)) for clf in classifiers]
+    classifiers = [
+        RandomForestClassifier(n_estimators=100),
+        AdaBoostClassifier(),
+        XGBClassifier(n_estimators=100),
+        #SVC(),
+        LogisticRegression(),
+        KNeighborsClassifier(n_neighbors=20),
+        GaussianNB()
+        ]
 
-clf_means = [np.mean(score) for score in scores]
-clf_2std = [2*np.std(score) for score in scores]
+    scores = [cross_val_score(clf, X, y, cv=5, scoring=make_scorer(f1_score)) for clf in classifiers]
 
-classifiers_txt = [type(clf).__name__ for clf in classifiers]
-plt.figure()
-plt.bar(classifiers_txt, clf_means, yerr=clf_2std, align='center', alpha=0.5, ecolor='black', capsize=10)
-# plt.errorbar(classifiers_txt, clf_means, yerr=clf_2std, marker=".",)
-plt.title("Binary Classification Using Histogram Features \n Variables: {}. Target: {}\n 5-fold CV".format(variable, target))
-plt.savefig("{}.png".format(variable))
-plt.ylim(.7, 1)
+    clf_means = [np.mean(score) for score in scores]
+    clf_2std = [2*np.std(score) for score in scores]
 
-plt.show()
+    classifiers_txt = [type(clf).__name__ for clf in classifiers]
+    plt.figure()
+    plt.bar(classifiers_txt, clf_means, yerr=clf_2std, align='center', alpha=0.5, ecolor='black', capsize=10)
+    # plt.errorbar(classifiers_txt, clf_means, yerr=clf_2std, marker=".",)
+    plt.title("Binary Classification Using Histogram Features \n Variables: {}. Target: {}\n 5-fold CV".format(variable, target))
+    plt.savefig(os.path.join(path_plots, "{}.png".format(variable)))
+    plt.ylim(.7, 1)
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    path_data = os.getenv("DSLAB_CLIMATE_LABELED_DATA")
+    path_plots = os.getenv("DSLAB_CLIMATE_PLOTS")
+    run(path_data, path_plots)
 
