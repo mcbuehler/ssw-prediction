@@ -1,21 +1,17 @@
 import numpy as np
+
+from data_manager import DataManager
 from dataset import DatapointKey as DK
 
 
 class FeatureExtractor:
 
     def __init__(self, data_file):
-        self.data_file = data_file
+        self.data_manager = DataManager(data_file)
         self.data_dict = dict()
 
     def _get_np_array(self, variable):
-        """
-
-        :param variable:
-        :return: matrix nxd where n is number of instances and d is number of dimensions
-        """
-        a = np.stack([self.data_file[key][variable] for key in list(self.data_file.keys())])
-        return a
+        return self.data_manager._get_np_array(variable)
 
     def _get_data_for_variable(self, variable):
         if variable not in self.data_dict:
