@@ -275,7 +275,6 @@ def label_dataset(input_dir, output_dir, overwrite):
     labels = [create_labels(dat, definition) for definition in
               get_available_defitinions()]
 
-
     for i, key in enumerate(keys):
         g = f2.create_group(key)
 
@@ -289,8 +288,10 @@ def label_dataset(input_dir, output_dir, overwrite):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_path", help="input h5 file (unlabeled) used to create labeled data.")
-    parser.add_argument("output_path", metavar='o', help="output h5 file (to be labeled) to write labeled data.")
+    parser.add_argument("input_path",
+                        help="input h5 file (unlabeled).")
+    parser.add_argument("output_path",
+                        help="output h5 file (labeled).")
     parser.add_argument('-w', action='store_true')
 
     args = parser.parse_args()
