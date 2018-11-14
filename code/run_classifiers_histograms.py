@@ -16,7 +16,7 @@ import numpy as np
 
 from feature_extractor import FeatureExtractor
 
-data_file = "../data/labeled_output/data_preprocessed_labeled.h5"
+data_file = "../data/preprocessed_output/data_labeled.h5"
 
 extractor = FeatureExtractor(data_file)
 n_bins = 20
