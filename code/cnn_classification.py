@@ -40,7 +40,7 @@ class SSWDataset(data.Dataset):
             self.labels = y_test
 
     def __getitem__(self, index):
-        return (torch.from_numpy(self.data[index]).float(),
+        return (torch.from_numpy(self.data[index] - np.mean(self.data[index])).float(),
                 self.labels[index].astype(int))
 
     def __len__(self):
@@ -145,13 +145,15 @@ class ConvNetClassifier():
 
 if __name__ == '__main__':
     filename = '../data/data_preprocessed_labeled.h5'
-    definition = "ZPOL_temp"
+    definition = "CP07"
 
     classifier = ConvNetClassifier(filename, definition)
     classifier.train()
     classifier.test()
 
-    # CP07 %98.5
+    # CP07 %98.5 ---> 85 percent with centering
     # U65 %94.9
     # ZPOL_temp %53
+    # with normalization 97.45
+    #  ---> centering causes a bias, beware
     # U&T %93.45
