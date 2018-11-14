@@ -33,7 +33,7 @@ SUBFOLDER_PREFIXES = ["year_", "daymean"]
 DATA_FILE_NAME = "atmos_daily.nc"
 
 # Job Configuration
-LIMIT = -1  # Number of winters to process
+LIMIT = int(os.getenv("DSLAB_LIMIT", -1))  # Number of winters to process
 N_JOBS = int(os.getenv("DSLAB_N_JOBS", 12))  # Number of cores to use
 print("N_JOBS: ", N_JOBS)
 VERBOSE = 20  # verbosity level

@@ -1,9 +1,11 @@
 # DSL2018-Proj-Climate-Science
 
-Before running `run_preprocessing.py`, make sure to set the following environment variables:
+## Preprocessing
 
-* DSLAB_CLIMATE_BASE_INPUT
-* DSLAB_CLIMATE_BASE_OUTPUT
-
-You can set the values for production using the following script:
+How to run:
+1. Check and adjust environment variables. Default values can be loaded via 
 `source scripts/load_environment_variables.sh`
+2. (Optional, depends on your configuration) Load your python virtual environment:
+`source YOUR_ENV/bin/activate`
+3. Run the script:
+`python code/run_preprocessing.py`
