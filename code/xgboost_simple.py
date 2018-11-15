@@ -81,8 +81,9 @@ class ManualAndXGBoost:
         """This function produces the train and the test split of the features
         as well as the train and the test split of the labels. Multiple things
         are happening. First of all it tries to read the already processed
-        features from tsfresh from a pickle file. If they are found available
-        it uses them instead of calculating them again.
+        features and their labels from tsfresh from a pickle file. If they are
+        found available it uses them instead of calculating them again. After
+        that is splits the dataset into test and train.
 
         Returns
         -------
@@ -148,6 +149,21 @@ class ManualAndXGBoost:
         return X_train, X_test, y_train, y_test
 
     def train(self, X_train, y_train):
+        """Trains an XGBoostClassifier by getting the training data from other
+        parts of the class. Also prints the three most important features for
+        the classification and plots them as a bar plot.
+
+        Parameters
+        ----------
+            X_train: numpy array
+                The training split of the data features
+            y_train: numpy array
+                The training split of the data labels
+        Returns
+        -------
+            model: XGBClassifier class
+                The trained model
+        """
         model = XGBClassifier()
         model.fit(X_train, y_train)
         top_3 = sorted(model.feature_importances_, reverse=True)[:3]
@@ -164,6 +180,19 @@ class ManualAndXGBoost:
         return model
 
     def test(self, model, X_test, y_test):
+        """Returns the accuracy of the model on the test set.
+        Parameters
+        ----------
+            X_test: numpy array
+                The test split of the data features
+            y_test: numpy array
+                The test split of the data labels
+
+        Returns
+        -------
+            accuracy: float
+                The accuracy of the model
+        """
         y_pred = model.predict(X_test)
         predictions = [round(value) for value in y_pred]
         accuracy = accuracy_score(y_test, predictions)
@@ -196,7 +225,7 @@ if __name__ == '__main__':
             default="data/"
             )
     args = parser.parse_args()
-    pickle_path = args.output_path + "features_" + args.definition + ".pkl"
+    pickle_path = args.output_path + "features.pkl"
     test = ManualAndXGBoost(
             definition=args.definition,
             path=args.input_path,
