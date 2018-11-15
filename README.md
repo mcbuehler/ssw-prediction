@@ -7,5 +7,7 @@ How to run:
 `source scripts/load_environment_variables.sh`
 2. (Optional, depends on your configuration) Load your python virtual environment:
 `source YOUR_ENV/bin/activate`
-3. Run the script:
+3. Run the preprocessing script:
 `python code/run_preprocessing.py`
+4. Run the labeling script:
+`python code/run_label_generation.py`
