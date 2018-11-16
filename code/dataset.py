@@ -1,6 +1,5 @@
 import sys
 from collections import Iterable
-from enum import Enum
 
 import numpy as np
 
@@ -80,4 +79,3 @@ class DatapointKey:
     UT = "U&T"
     U65 = "U65"
     ZPOL = "ZPOL_temp"
-

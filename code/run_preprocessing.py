@@ -51,6 +51,7 @@ VERBOSE = 20  # verbosity level
 CLEAR_PREVIOUS = os.getenv("DSLAB_CLEAR_PREVIOUS", 0) == "1"
 print("CLEAR PREVIOUS: ", CLEAR_PREVIOUS)
 
+
 def remove_datapoints(paths: list, preprocessed_winters: list,
                       verbose: bool = False) -> list:
     """
@@ -94,7 +95,8 @@ def process_single_year(path1: str, path2: str,
                                                        path_elements[-1])
     if identifier not in ommit_identifiers:
         if verbose:
-            print("Processing {}... (paths: {} and {})".format(identifier, path1, path2))
+            print("Processing {}... (paths: {} and {})".format(identifier,
+                                                               path1, path2))
         datapoint = DataPointFactory.create(path1, path2)
         return identifier, datapoint
     return None, None

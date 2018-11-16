@@ -226,7 +226,8 @@ definitions = {
 
 
 def create_labels(data, definition):
-    """Given a data matrix of winter and definition, checks whether an SSW happened
+    """Given a data matrix of winter and definition,
+    checks whether an SSW happened
     that conforms to the given definition.
 
     Parameters

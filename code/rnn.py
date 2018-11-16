@@ -7,14 +7,14 @@ import torch.optim as optim
 import os
 
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader
 
 from data_manager import DataManager
 
 torch.manual_seed(1)
 
 ######################################################################
-# Code based on https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
+# Code based on
+# https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
 
 LEARNING_RATE = 0.1
 N_EPOCHS = 300
@@ -22,11 +22,12 @@ BATCH_SIZE = 128
 SEQ_LEN = 210
 INPUT_DIM = 1
 HIDDEN_DIM = 1  # what is this exactly?
-INPUT_FILE = os.getenv("DSLAB_CLIMATE_LABELED_DATA")  # local: "../data/labeled_output/data_preprocessed_labeled.h5"
+INPUT_FILE = os.getenv(
+    "DSLAB_CLIMATE_LABELED_DATA")
+# local: "../data/labeled_output/data_preprocessed_labeled.h5"
 
 
 class SSWPredictorLSTM(nn.Module):
-
     def __init__(self, input_dim, hidden_dim):
         super(SSWPredictorLSTM, self).__init__()
         self.hidden_dim = hidden_dim
@@ -66,10 +67,11 @@ def load_input_data():
     # shape (1372, 2, 210)
     return train_feature, train_label
 
+
 all_features, all_labels = load_input_data()
 
-
-train_features, test_features, train_labels, test_labels = train_test_split(all_features, all_labels, test_size=0.2, random_state=42)
+train_features, test_features, train_labels, test_labels = train_test_split(
+    all_features, all_labels, test_size=0.2, random_state=42)
 N = len(all_features)
 
 model = SSWPredictorLSTM(INPUT_DIM, HIDDEN_DIM)
@@ -80,10 +82,12 @@ optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
 
 def sample_indices(n_sampled, n):
-    return np.random.random_integers(0, n-1, n_sampled)
+    return np.random.random_integers(0, n - 1, n_sampled)
 
 
-for epoch in range(N_EPOCHS):  # again, normally you would NOT do 300 epochs, it is toy data
+for epoch in range(
+        N_EPOCHS):
+    # again, normally you would NOT do 300 epochs, it is toy data
     print(epoch)
     loss = 0
 
@@ -91,7 +95,7 @@ for epoch in range(N_EPOCHS):  # again, normally you would NOT do 300 epochs, it
 
     features = torch.FloatTensor(train_features[indices, :])
     labels = train_labels[indices, :].astype(np.int)
-    labels = torch.LongTensor(np.transpose(labels, (1,0)))
+    labels = torch.LongTensor(np.transpose(labels, (1, 0)))
 
     # Step 1. Remember that Pytorch accumulates gradients.
     # We need to clear them out before each instance
@@ -104,7 +108,7 @@ for epoch in range(N_EPOCHS):  # again, normally you would NOT do 300 epochs, it
     # Step 3. Run our forward pass.
     tag_scores = model(features)
     for i in range(BATCH_SIZE):
-        predictions_i = tag_scores[:,i,:]
+        predictions_i = tag_scores[:, i, :]
         labels_i = labels[:, i]
         loss += criterion(predictions_i, labels_i)
 
@@ -112,5 +116,3 @@ for epoch in range(N_EPOCHS):  # again, normally you would NOT do 300 epochs, it
     loss.backward()
 
     optimizer.step()
-
-

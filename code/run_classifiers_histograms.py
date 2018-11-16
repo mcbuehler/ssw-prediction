@@ -1,12 +1,10 @@
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
-import h5py
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, make_scorer
 from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
 from dataset import DatapointKey as DK
@@ -17,10 +15,8 @@ import numpy as np
 from feature_extractor import FeatureExtractor
 import os
 
-"""
-Please note that this file is not documented carefully as 
-it only contains experimental code.
-"""
+# Please note that this file is not documented carefully
+# as it only contains experimental code.
 
 
 def run(path_data, path_plots):
