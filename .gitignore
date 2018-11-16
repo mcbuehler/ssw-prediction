@@ -5,3 +5,4 @@ data/*
 .idea
 __pycache__
 notebooks/.ipynb_checkpoints/
+pytorch_lstm.py
