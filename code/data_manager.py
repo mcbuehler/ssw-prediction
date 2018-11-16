@@ -40,20 +40,8 @@ class DataManager:
             self.data_dict[variable] = self._get_np_array(variable)
         return self.data_dict[variable]
 
-    def yearly_label(self, label_identifier):
-        """
-        Returns the yearly labels for given definition (label_identifier)
-        :param label_identifier:
-        :return:
-        """
-        data = self.get_data_for_variable(label_identifier)
-        binary_label = np.apply_along_axis(lambda a: 1 if 1 in a else 0,
-                                           axis=1, arr=data)
-        return binary_label
-
 
 if __name__ == "__main__":
     dm = DataManager(
         "../data/labeled_output/data_preprocessed_labeled.h5")
-    print(len(dm.yearly_label("CP07")))
     print(dm.get_data_for_variable("CP07").shape)
