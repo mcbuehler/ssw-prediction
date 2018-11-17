@@ -226,7 +226,8 @@ definitions = {
 
 
 def create_labels(data, definition):
-    """Given a data matrix of winter and definition, checks whether an SSW happened
+    """Given a data matrix of winter and definition,
+    checks whether an SSW happened
     that conforms to the given definition.
 
     Parameters
@@ -259,6 +260,7 @@ def get_available_definitions():
 
 
 def label_dataset(path_in, path_out):
+    print("Labelling data from {}".format(path_in))
     # Load data from h5 file
     f = h5py.File(path_in, 'r')
 
@@ -267,13 +269,16 @@ def label_dataset(path_in, path_out):
         ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
     keys = list(f.keys())
 
+    print("Processing data...")
     # Get data and label it
     dat = np.array(
         [[f[key][data_field] for data_field in data_fields] for key in keys])
 
+    print("Creating labels...")
     labels = [create_labels(dat, definition) for definition in
               get_available_definitions()]
 
+    print("Writing labelled outputs...")
     # Persist the labeled data as a new h5 file
     f2 = h5py.File(path_out, "w")
 
@@ -286,6 +291,7 @@ def label_dataset(path_in, path_out):
             g.create_dataset(label, data=labels[j][i], dtype=np.bool)
 
     f2.close()
+    print("Written to {}".format(path_out))
 
 
 if __name__ == '__main__':

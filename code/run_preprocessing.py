@@ -8,6 +8,14 @@ import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
 
+import signal
+import sys
+
+
+def signal_handler(sig, frame):
+        print('You pressed Ctrl+C!')
+        sys.exit(0)
+
 
 def check_environment_variables():
     required_environ_variables = ["DSLAB_CLIMATE_BASE_INPUT",
@@ -40,7 +48,8 @@ VERBOSE = 20  # verbosity level
 # If True clears all previous processed data
 # # If False previously processed winters will be kept and not replaced
 # CLEAR_PREVIOUS = False
-CLEAR_PREVIOUS = bool(os.getenv("DSLAB_CLEAR_PREVIOUS", 0))
+CLEAR_PREVIOUS = os.getenv("DSLAB_CLEAR_PREVIOUS", 0) == "1"
+print("CLEAR PREVIOUS: ", CLEAR_PREVIOUS)
 
 
 def remove_datapoints(paths: list, preprocessed_winters: list,
@@ -86,7 +95,8 @@ def process_single_year(path1: str, path2: str,
                                                        path_elements[-1])
     if identifier not in ommit_identifiers:
         if verbose:
-            print("Processing {}...".format(identifier))
+            print("Processing {}... (paths: {} and {})".format(identifier,
+                                                               path1, path2))
         datapoint = DataPointFactory.create(path1, path2)
         return identifier, datapoint
     return None, None
@@ -215,6 +225,9 @@ def run_preprocessing(limit: int = -1) -> None:
 
 
 def run():
+    # Signal listener to shut down process in case it is interrupted
+    signal.signal(signal.SIGINT, signal_handler)
+
     # We remove the old h5 file
     if CLEAR_PREVIOUS and os.path.exists(PATH_OUT_HDF5):
         input(
