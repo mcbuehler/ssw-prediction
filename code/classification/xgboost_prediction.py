@@ -51,16 +51,16 @@ class XGBoostPredict(ManualAndXGBoost):
     def train(self, X_train, y_train):
         prediction_models = []
         for i, interval in enumerate(self.prediction_interval):
-            prediction_models.append(super().train(X_train, y_train[i]))
+            prediction_models.append(super().train(X_train, y_train[:, i]))
         return prediction_models
 
     def test(self, prediction_models, X_test, y_test):
         for i, interval in enumerate(self.prediction_interval):
             y_pred = prediction_models[i].predict(X_test)
-            auc = roc_auc_score(y_test[i], y_pred)
-            f1_score(y_test[i], y_pred, average='micro')
+            auc = roc_auc_score(y_test[:, i], y_pred)
+            f1 = f1_score(y_test[:, i], y_pred, average='macro')
             print("{0} days in advance, AUROC: {1}, F1: {2}".format(interval,
-                  auc, f1_score))
+                  auc, f1))
 
 
 if __name__ == "__main__":
@@ -105,4 +105,6 @@ if __name__ == "__main__":
             pickle_path=pickle_path,
             cutoff_point=args.cutoff_point
             )
-    test.preprocess_as_prediction()
+    X_train, X_test, y_train, y_test = test.preprocess_as_prediction()
+    model = test.train(X_train, y_train)
+    test.test(model, X_test, y_test)
