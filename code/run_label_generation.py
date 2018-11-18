@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import os
+from dataset import DatapointKey
 
 
 def check_SSW(m_temp_gradient, ssw):
@@ -36,16 +37,22 @@ def UnT(data):
 
     """
 
-    # temp_80_90 - temp_60_70
-    m_temp_gradient = data[2] - data[1]
-    potential_SSWs = SSWs_wind_reversal(data, 3)
+    def UnT_single(xi):
+        """
+               Calculates U&T SSW tag for a single winter.
+        """
+        # temp_80_90 - temp_60_70
+        m_temp_gradient = xi[2] - xi[1]
+        potential_SSWs = SSWs_wind_reversal(xi, 3)
 
-    SSWs = [ssw for ssw in potential_SSWs if check_SSW(m_temp_gradient, ssw)]
-    SSWmask = np.zeros(data[1].shape, bool)
+        SSWs = [ssw for ssw in potential_SSWs if check_SSW(m_temp_gradient, ssw)]
+        SSWmask = np.zeros(xi[1].shape, bool)
 
-    SSWmask[SSWs] = True
+        SSWmask[SSWs] = True
 
-    return SSWmask
+        return SSWmask
+
+    return [UnT_single(xi) for xi in data]
 
 
 def CP07(data):
@@ -71,11 +78,18 @@ def CP07(data):
          SSWs: list[int]
             A mask of booleans which includes SSW dates for each winter day
     """
-    SSWs = SSWs_wind_reversal(data, 3)
-    SSWmask = np.zeros(data[1].shape, bool)
 
-    SSWmask[SSWs] = True
-    return SSWmask
+    def CP07_single(xi):
+        """
+               Calculates CP07 SSW tag for a single winter.
+        """
+        SSWs = SSWs_wind_reversal(xi, 3)
+        SSWmask = np.zeros(xi[1].shape, bool)
+
+        SSWmask[SSWs] = True
+        return SSWmask
+
+    return [CP07_single(xi) for xi in data]
 
 
 def U65(data):
@@ -99,20 +113,26 @@ def U65(data):
             A mask of booleans which includes SSW dates for each winter day
     """
 
-    SSWs = SSWs_wind_reversal(data, 4)
-    SSWmask = np.zeros(data[1].shape, bool)
+    def U65_single(xi):
+        """
+        Calculates U65 SSW tag for a single winter.
+        """
+        SSWs = SSWs_wind_reversal(xi, 4)
+        SSWmask = np.zeros(xi[1].shape, bool)
 
-    SSWmask[SSWs] = True
-    return SSWmask
+        SSWmask[SSWs] = True
+        return SSWmask
+
+    return [U65_single(xi) for xi in data]
 
 
-def SSWs_wind_reversal(data, data_index):
+def SSWs_wind_reversal(xi, data_index):
     """Given a data matrix of winter, checks whether a wind reversal
     that might be an SSW happened or not.
 
     Parameters
     ----------
-         data: data: np.array
+         xi: data: np.array
                 data which contains timeseries for
                 [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
                 in the given order
@@ -136,7 +156,7 @@ def SSWs_wind_reversal(data, data_index):
     # Number of consecutive days when the winds are westerly
     streak = 0
 
-    for i, wind in enumerate(data[data_index, :]):
+    for i, wind in enumerate(xi[data_index, :]):
 
         # If wind is westerly, increase the streak
         if wind >= 0:
@@ -165,7 +185,6 @@ def SSWs_wind_reversal(data, data_index):
     return SSWs
 
 
-# TODO: Fix there is a problem with this defn.
 def zpol_with_temp(data):
     """Given a data matrix of winter, checks SSW events that conform
     to ZPOL definition, but uses temperature instead of geopotential:
@@ -193,35 +212,44 @@ def zpol_with_temp(data):
             A mask of booleans which includes SSW dates for each winter day
     """
 
-    # January February March timeseries
-    jfm_timeseries = data[0][90:180]
-    jfm_mean = np.mean(jfm_timeseries)
-    jfm_std = np.std(jfm_timeseries)
+    # For each year, extract the time series for temp_60_90 between days
+    # 90 - 180 -> January, February, March
+    jfm_timeseries = data[:, 0, 90:180]
 
-    # standardization of winter time-series using JFM mean
-    standardized_winter = (data[0] - jfm_mean) / jfm_std
-    potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
-    SSWs = []
+    # Take mean for each winter (JFM time series of temp_60_90)
+    jfm_mean = np.mean(jfm_timeseries, axis=1)
 
-    # If potential SSW is in the first 3 months of winter and there
-    # are at least 2 months between SSWs
-    cur = None
-    for SSW in potentialSSWs:
-        if (cur is None or SSW - 60 > cur) and SSW < 180:
-            cur = SSW
-            SSWs.append(SSW)
+    # Take standard deviation of these means to derive JFM stdev
+    jfm_std = np.std(jfm_mean)
+    jfm_mean = np.mean(jfm_mean)
 
-    SSWmask = np.zeros(data[0].shape, bool)
+    def zpol_with_temp_single(xi, jfm_mean, jfm_std):
 
-    SSWmask[SSWs] = True
-    return SSWmask
+        # standardization of winter time-series using JFM mean
+        standardized_winter = (xi[0] - jfm_mean) / jfm_std
+        potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
+        SSWs = []
 
+        # If potential SSW is in the first 3 months of winter and there
+        # are at least 2 months between SSWs
+        cur = None
+        for SSW in potentialSSWs:
+            if (cur is None or SSW - 60 > cur) and SSW < 180:
+                cur = SSW
+                SSWs.append(SSW)
+
+        SSWmask = np.zeros(xi[0].shape, bool)
+
+        SSWmask[SSWs] = True
+        return SSWmask
+
+    return [zpol_with_temp_single(xi, jfm_mean, jfm_std) for xi in data]
 
 definitions = {
-    "U&T": UnT,
-    "CP07": CP07,
-    "U65": U65,
-    "ZPOL_temp": zpol_with_temp
+    DatapointKey.UT: UnT,
+    DatapointKey.CP07: CP07,
+    DatapointKey.U65: U65,
+    DatapointKey.ZPOL: zpol_with_temp
 }
 
 
@@ -252,7 +280,7 @@ def create_labels(data, definition):
             .format(definition, list(definitions.keys())))
 
     f = definitions[definition]
-    return [f(xi) for xi in data]
+    return f(data)
 
 
 def get_available_definitions():
@@ -262,37 +290,43 @@ def get_available_definitions():
 def label_dataset(path_in, path_out):
     print("Labelling data from {}".format(path_in))
     # Load data from h5 file
-    f = h5py.File(path_in, 'r')
+    f = h5py.File(path_in, "r")
+
+    # To persist the labeled data as a new h5 file
+    f2 = h5py.File(path_out, "a")
 
     # Get group names and dictionary names
-    data_fields = \
-        ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
-    keys = list(f.keys())
+    data_fields = [DatapointKey.TEMP_60_90, DatapointKey.TEMP_60_70,
+                   DatapointKey.TEMP_80_90, DatapointKey.WIND_60, DatapointKey.WIND_65]
 
-    print("Processing data...")
-    # Get data and label it
-    dat = np.array(
-        [[f[key][data_field] for data_field in data_fields] for key in keys])
+    keys = list(set(f.keys()) - set(f2.keys()))
 
-    print("Creating labels...")
-    labels = [create_labels(dat, definition) for definition in
-              get_available_definitions()]
+    if len(keys) > 0:
+        print("Processing data...")
+        # Get data and label it
+        dat = np.array(
+            [[f[key][data_field] for data_field in data_fields] for key in keys])
 
-    print("Writing labelled outputs...")
-    # Persist the labeled data as a new h5 file
-    f2 = h5py.File(path_out, "w")
+        print("Creating labels...")
+        labels = [create_labels(dat, definition) for definition in
+                  get_available_definitions()]
 
-    for i, key in enumerate(keys):
-        g = f2.create_group(key)
+        print("Writing labelled outputs...")
 
-        for var in data_fields:
-            g.create_dataset(var, data=f[key][var], dtype=np.double)
-        for j, label in enumerate(get_available_definitions()):
-            g.create_dataset(label, data=labels[j][i], dtype=np.bool)
+        for i, key in enumerate(keys):
+            g = f2.create_group(key)
+
+            for var in data_fields:
+                g.create_dataset(var, data=f[key][var], dtype=np.double)
+            for j, label in enumerate(get_available_definitions()):
+                g.create_dataset(label, data=labels[j][i], dtype=np.bool)
+
+        print("Written to {}".format(path_out))
+
+    else:
+        print("Labeled data up-to-date! No keys to add.")
 
     f2.close()
-    print("Written to {}".format(path_out))
-
 
 if __name__ == '__main__':
     path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
