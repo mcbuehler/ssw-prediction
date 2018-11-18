@@ -8,11 +8,11 @@ from sklearn.model_selection import train_test_split
 
 
 class XGBoostPredict(ManualAndXGBoost):
-    prediction_interval = list(range(5, 31, 5))
-
-    def __init__(self, definition, path, pickle_path, cutoff_point):
+    def __init__(self, definition, path, pickle_path, cutoff_point,
+                 max_prediction):
         super().__init__(definition, path, pickle_path)
         self.cutoff_point = cutoff_point
+        self.prediction_interval = list(range(5, max_prediction + 1, 5))
 
     def _get_labels_for_prediction(self):
         temp_labels = self.data_manager.get_data_for_variable(self.definition)
@@ -59,8 +59,8 @@ class XGBoostPredict(ManualAndXGBoost):
             y_pred = prediction_models[i].predict(X_test)
             auc = roc_auc_score(y_test[:, i], y_pred)
             f1 = f1_score(y_test[:, i], y_pred, average='macro')
-            print("{0} days in advance, AUROC: {1}, F1: {2}".format(interval,
-                  auc, f1))
+            print(("{0} days in advance, \t AUROC: {1:.2f}, \t F1:"
+                   "{2:.2f}").format(interval, auc, f1))
 
 
 if __name__ == "__main__":
@@ -96,6 +96,14 @@ if __name__ == "__main__":
             action="store",
             default=60
             )
+    parser.add_argument(
+            "-pi",
+            "--prediction_interval",
+            help="Choose the max prediction interval",
+            type=int,
+            action="store",
+            default=30
+            )
     args = parser.parse_args()
     pickle_path = (args.output_path + "features" + str(args.cutoff_point) +
                    ".pkl")
@@ -103,7 +111,8 @@ if __name__ == "__main__":
             definition=args.definition,
             path=args.input_path,
             pickle_path=pickle_path,
-            cutoff_point=args.cutoff_point
+            cutoff_point=args.cutoff_point,
+            max_prediction=args.prediction_interval
             )
     X_train, X_test, y_train, y_test = test.preprocess_as_prediction()
     model = test.train(X_train, y_train)
