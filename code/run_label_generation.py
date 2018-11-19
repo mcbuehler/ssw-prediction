@@ -1,11 +1,8 @@
+import os
+
 import h5py
 import numpy as np
-import os
 from dataset import DatapointKey
-
-
-def check_SSW(m_temp_gradient, ssw):
-    return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
 
 
 def UnT(data):
@@ -37,6 +34,19 @@ def UnT(data):
 
     """
 
+    def check_SSW(m_temp_gradient, ssw):
+        """
+        Checks whether a potential SSW also causes a meridional temperature
+        gradient reversal (defined as the zonal-mean temperatures averaged
+        from 80° to 90°N minus the temperatures averaged from 60° to 70°N)
+
+        :param m_temp_gradient: Array which contains meridional temperature
+        gradient through a winter.
+        :param ssw: Potential indeces for SSW events
+        :return: Indices of SSW events that conform to the U&T definition
+        """
+        return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
+
     def UnT_single(xi):
         """
                Calculates U&T SSW tag for a single winter.
@@ -45,7 +55,8 @@ def UnT(data):
         m_temp_gradient = xi[2] - xi[1]
         potential_SSWs = SSWs_wind_reversal(xi, 3)
 
-        SSWs = [ssw for ssw in potential_SSWs if check_SSW(m_temp_gradient, ssw)]
+        SSWs = [ssw for ssw in potential_SSWs if
+                check_SSW(m_temp_gradient, ssw)]
         SSWmask = np.zeros(xi[1].shape, bool)
 
         SSWmask[SSWs] = True
@@ -225,9 +236,13 @@ def zpol_with_temp(data):
 
     def zpol_with_temp_single(xi, jfm_mean, jfm_std):
 
-        # standardization of winter time-series using JFM mean
+        # Standardization of winter time-series using JFM mean
         standardized_winter = (xi[0] - jfm_mean) / jfm_std
-        potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
+
+        # Label as an SSW event if the temperature is 3 stdev more
+        # than JFM mean
+        potentialSSWs = [i for i, val in enumerate(standardized_winter)
+                         if val > 3]
         SSWs = []
 
         # If potential SSW is in the first 3 months of winter and there
@@ -244,6 +259,7 @@ def zpol_with_temp(data):
         return SSWmask
 
     return [zpol_with_temp_single(xi, jfm_mean, jfm_std) for xi in data]
+
 
 definitions = {
     DatapointKey.UT: UnT,
@@ -296,8 +312,11 @@ def label_dataset(path_in, path_out):
     f2 = h5py.File(path_out, "a")
 
     # Get group names and dictionary names
-    data_fields = [DatapointKey.TEMP_60_90, DatapointKey.TEMP_60_70,
-                   DatapointKey.TEMP_80_90, DatapointKey.WIND_60, DatapointKey.WIND_65]
+    data_fields = [DatapointKey.TEMP_60_90,
+                   DatapointKey.TEMP_60_70,
+                   DatapointKey.TEMP_80_90,
+                   DatapointKey.WIND_60,
+                   DatapointKey.WIND_65]
 
     keys = list(set(f.keys()) - set(f2.keys()))
 
@@ -305,7 +324,8 @@ def label_dataset(path_in, path_out):
         print("Processing data...")
         # Get data and label it
         dat = np.array(
-            [[f[key][data_field] for data_field in data_fields] for key in keys])
+            [[f[key][data_field] for data_field in data_fields]
+             for key in keys])
 
         print("Creating labels...")
         labels = [create_labels(dat, definition) for definition in
@@ -327,6 +347,7 @@ def label_dataset(path_in, path_out):
         print("Labeled data up-to-date! No keys to add.")
 
     f2.close()
+
 
 if __name__ == '__main__':
     path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
