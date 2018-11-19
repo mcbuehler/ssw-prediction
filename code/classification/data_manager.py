@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 
 
+
 class DataManager:
     """
     Class that facilitates loading data from the h5 File
