@@ -163,14 +163,16 @@ class ManualAndXGBoost:
         Returns
         -------
             X_train: numpy array
-                A numpy array of shape [num_data x num_features] the training
-                data
+                A numpy array of shape [num_data x num_features] that contains
+                the training data
             X_test: numpy array
-                A numpy array of shape [num_data x num_features] the test data
+                A numpy array of shape [num_data x num_features] that contains
+                the test data
             y_train: numpy array
-                A numpy array of shape [num_data x 1] the training labels
+                A numpy array of shape [num_data] that contains the training
+                labels
             y_test: numpy array
-                A numpy array of shape [num_data x 1] the test labels
+                A numpy array of shape [num_data] that contains the test labels
         """
         labels = self.__get_labels()
         try:
