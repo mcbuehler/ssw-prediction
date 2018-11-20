@@ -57,7 +57,7 @@ class ManualAndXGBoost:
         labels = np.array(binary_labels)
         return labels
 
-    def __bring_data_to_format(self):
+    def _bring_data_to_format(self):
         """Gets the corresponding initial variables using the data manager class
         and returns a data numpy array that the features in format
         [num_data*num_features, len_winter]. The trick here is that
@@ -91,7 +91,7 @@ class ManualAndXGBoost:
         # sys.exit(0)
         return data
 
-    def __produce_features(self, data):
+    def _produce_features(self, data):
         """
         Gets the data in the format [num_data*num_features, len_winter] and by
         using tsfresh it produces a matrix [num_data,
@@ -180,8 +180,8 @@ class ManualAndXGBoost:
             print("Didn't find the .pkl file of the features. Producing it",
                   "now, under the pickle path folder")
 
-            data = self.__bring_data_to_format()
-            features = self.__produce_features(data)
+            data = self._bring_data_to_format()
+            features = self._produce_features(data)
             with open(str(self.pickle_path), 'wb') as f:
                 pickle.dump([features, self.feature_keys], f)
 
@@ -265,7 +265,7 @@ if __name__ == '__main__':
     parser.add_argument(
             "-i",
             "--input_path",
-            help="Choose the input path where the data are",
+            help="Choose the input relative path where the data are",
             action="store",
             default="data/data_labeled.h5"
             )
