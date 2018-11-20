@@ -242,8 +242,8 @@ def zpol_with_temp(data):
 
     # Create a list of dictionaries which contain each data field
     # for a year to iterate
-    winters = [{data_field: data[data_field][i, :] for data_field in data.keys()}
-               for i in range(number_of_years)]
+    winters = [{data_field: data[data_field][i, :] for data_field in
+                data.keys()} for i in range(number_of_years)]
 
     return [zpol_with_temp_single(xi, jfm_mean, jfm_std) for xi in winters]
 
@@ -292,11 +292,10 @@ def create_labels(data, definition):
 
         # Create a list of dictionaries which contain each data field
         # for a year to iterate
-        winters = [{data_field: data[data_field][i, :] for data_field in data.keys()}
-                   for i in range(number_of_years)]
+        winters = [{data_field: data[data_field][i, :] for data_field
+                    in data.keys()} for i in range(number_of_years)]
 
         return [f(xi) for xi in winters]
-
 
 
 def get_available_definitions():
