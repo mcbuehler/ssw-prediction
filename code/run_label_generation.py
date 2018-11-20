@@ -7,8 +7,7 @@ from data_manager import DataManager
 
 
 def check_SSW(m_temp_gradient, ssw):
-    """
-    Checks whether a potential SSW also causes a meridional temperature
+    """Checks whether a potential SSW also causes a meridional temperature
     gradient reversal (defined as the zonal-mean temperatures averaged
     from 80° to 90°N minus the temperatures averaged from 60° to 70°N)
 
@@ -21,7 +20,7 @@ def check_SSW(m_temp_gradient, ssw):
 
 
 def UnT(xi):
-    """ Given a data matrix of winter, checks SSW events that conform
+    """Given a data matrix of winter, checks SSW events that conform
     to U&T definition:
 
     Events occur when the zonal-mean zonal winds at 10 hPa and
@@ -63,7 +62,7 @@ def UnT(xi):
 
 
 def CP07(xi):
-    """ Given a data matrix of winter, checks SSW events that conform
+    """Given a data matrix of winter, checks SSW events that conform
     to CP07 definition:
 
     Events occur when the zonal-mean zonal winds at 10 hPa and 60°N
@@ -327,7 +326,6 @@ def label_dataset(path_in, path_out):
 
     if len(keys) > 0:
         print("Processing data...")
-        # Get data and label it
 
         dat = {data_field: data_manager.get_data_for_variable(data_field)
                for data_field in data_fields}
