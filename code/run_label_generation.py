@@ -36,10 +36,9 @@ def UnT(xi):
 
     Parameters
     ----------
-        data: np.array
-            data which contains timeseries for
-            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-            in the given order
+        xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
 
     Returns
@@ -75,10 +74,9 @@ def CP07(xi):
 
     Parameters
     ----------
-         data: np.array
-            data which contains timeseries for
-            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-            in the given order
+         xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
 
     Returns
@@ -103,10 +101,9 @@ def U65(xi):
 
     Parameters
     ----------
-        data: np.array
-        data which contains timeseries for
-        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-        in the given order
+        xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
 
     Returns
@@ -129,9 +126,8 @@ def SSWs_wind_reversal(xi, datatype_name):
     Parameters
     ----------
          xi:dict
-         data which contains time series for
-         [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-         as a dictionary
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
          datatype_name: name of which numpy array is going to be used
          (i.e. wind_60, wind_65)
@@ -196,10 +192,10 @@ def zpol_with_temp(data):
 
     Parameters
     ----------
-        data: dict
-        data which contains time series for
-        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-        as a dictionary
+        data:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for each year
+         in the dataset.
 
 
     Returns
