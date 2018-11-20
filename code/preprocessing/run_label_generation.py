@@ -205,7 +205,8 @@ def zpol_with_temp(data):
     def zpol_with_temp_single(xi, jfm_mean, jfm_std):
 
         # Standardization of winter time-series using JFM mean
-        standardized_winter = (xi[DatapointKey.TEMP_60_90] - jfm_mean) / jfm_std
+        standardized_winter = (xi[DatapointKey.TEMP_60_90] - jfm_mean) \
+                              / jfm_std
 
         # Label as an SSW event if the temperature is 3 stdev more
         # than JFM mean
