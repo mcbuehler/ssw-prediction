@@ -7,6 +7,7 @@ from xgboost import XGBClassifier
 from classification.xgboost_simple import ManualAndXGBoost
 from prediction_set import PredictionSet
 from sklearn.model_selection import train_test_split, GridSearchCV
+from imblearn.over_sampling import SMOTE
 
 
 class XGBoostPredict(ManualAndXGBoost):
@@ -89,13 +90,15 @@ class XGBoostPredict(ManualAndXGBoost):
         """
         labels = np.ravel(self.prediction_set.get_labels_for_prediction())
         # get distribution of the labels
-        # for i in range(len(self.prediction_interval)):
-        #     print(np.unique(labels[:, i], return_counts=True))
+        # print(np.unique(labels[:], return_counts=True))
         try:
             with open(str(self.pickle_path), 'rb') as f:
                 features, self.feature_keys = pickle.load(f)
             features = np.array(features)
+            print(features.shape)
         except FileNotFoundError:
+            # TODO: refactor code so that the test-train split is being done
+            # before the feature engineering
             print("Didn't find the .pkl file of the features. Producing it",
                   "now, under the pickle path folder")
             data = self.prediction_set.cutoff_for_prediction()
@@ -104,9 +107,12 @@ class XGBoostPredict(ManualAndXGBoost):
             with open(str(self.pickle_path), 'wb') as f:
                 pickle.dump([features, self.feature_keys], f)
 
+        features = np.nan_to_num(features)
         X_train, X_test, y_train, y_test = train_test_split(
                         features, labels, test_size=0.2,
                         stratify=labels, random_state=42)
+        X_train, y_train = SMOTE().fit_resample(X_train, y_train)
+        print(np.unique(y_test[:], return_counts=True))
         return X_train, X_test, y_train, y_test
 
     def tune_classifier(self, X_train, y_train):
