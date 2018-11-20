@@ -3,30 +3,30 @@ import pickle
 # import sys
 import numpy as np
 from sklearn.metrics import f1_score, roc_auc_score
-from xgboost_simple import ManualAndXGBoost
+from classification.xgboost_simple import ManualAndXGBoost
+from prediction_set import PredictionSet
 from sklearn.model_selection import train_test_split
 
 
 class XGBoostPredict(ManualAndXGBoost):
     def __init__(self, definition, path, pickle_path, cutoff_point,
-                 max_prediction):
-        super().__init__(definition, path, pickle_path)
-        self.cutoff_point = cutoff_point
-        self.prediction_interval = list(range(5, max_prediction + 1, 5))
+                 prediction_interval):
+        self.prediction_interval = prediction_interval
+        self.pickle_path = pickle_path
+        self.prediction_set = PredictionSet(definition, path, cutoff_point,
+                                            prediction_interval)
 
-    def _get_labels_for_prediction(self):
-        temp_labels = self.data_manager.get_data_for_variable(self.definition)
-        labels = np.zeros((
-                        temp_labels.shape[0], len(self.prediction_interval)))
-        for i in range(len(temp_labels)):
-            for j, offset in enumerate(self.prediction_interval):
-                labels[i, j] = int(np.any(
-                                   temp_labels[i, self.cutoff_point:
-                                               self.cutoff_point + offset]))
-        return labels
+    def _bring_data_to_format(self, temp_data):
+        feature_count = temp_data.shape[1]
+        data = []
+        for i in range(len(temp_data)):
+            for j in range(feature_count):
+                data.append(temp_data[i, j, :])
+        data = np.array(data)
+        return data
 
     def preprocess_as_prediction(self):
-        labels = self._get_labels_for_prediction()
+        labels = np.ravel(self.prediction_set.get_labels_for_prediction())
         # get distribution of the labels
         # for i in range(len(self.prediction_interval)):
         #     print(np.unique(labels[:, i], return_counts=True))
@@ -37,30 +37,27 @@ class XGBoostPredict(ManualAndXGBoost):
         except FileNotFoundError:
             print("Didn't find the .pkl file of the features. Producing it",
                   "now, under the pickle path folder")
-            data = super()._bring_data_to_format()
-            data = data[:, :self.cutoff_point]
+            data = self.prediction_set.cutoff_for_prediction()
+            data = self._bring_data_to_format(data)
             features = self._produce_features(data)
             with open(str(self.pickle_path), 'wb') as f:
                 pickle.dump([features, self.feature_keys], f)
 
         X_train, X_test, y_train, y_test = train_test_split(
                         features, labels, test_size=0.2,
-                        stratify=labels[:, 0], random_state=42)
+                        stratify=labels, random_state=42)
         return X_train, X_test, y_train, y_test
 
     def train(self, X_train, y_train):
-        prediction_models = []
-        for i, interval in enumerate(self.prediction_interval):
-            prediction_models.append(super().train(X_train, y_train[:, i]))
-        return prediction_models
+        model = super().train(X_train, y_train)
+        return model
 
-    def test(self, prediction_models, X_test, y_test):
-        for i, interval in enumerate(self.prediction_interval):
-            y_pred = prediction_models[i].predict(X_test)
-            auc = roc_auc_score(y_test[:, i], y_pred)
-            f1 = f1_score(y_test[:, i], y_pred, average='macro')
-            print(("{0} days in advance, \t AUROC: {1:.2f}, \t F1:"
-                   "{2:.2f}").format(interval, auc, f1))
+    def test(self, model, X_test, y_test):
+        y_pred = model.predict(X_test)
+        auc = roc_auc_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average='macro')
+        print(("{0} days in advance, \t AUROC: {1:.2f}, \t F1:"
+               "{2:.2f}").format(self.prediction_interval, auc, f1))
 
 
 if __name__ == "__main__":
@@ -102,7 +99,7 @@ if __name__ == "__main__":
             help="Choose the max prediction interval",
             type=int,
             action="store",
-            default=30
+            default=5
             )
     args = parser.parse_args()
     pickle_path = (args.output_path + "features" + str(args.cutoff_point) +
@@ -112,7 +109,7 @@ if __name__ == "__main__":
             path=args.input_path,
             pickle_path=pickle_path,
             cutoff_point=args.cutoff_point,
-            max_prediction=args.prediction_interval
+            prediction_interval=args.prediction_interval
             )
     X_train, X_test, y_train, y_test = test.preprocess_as_prediction()
     model = test.train(X_train, y_train)
