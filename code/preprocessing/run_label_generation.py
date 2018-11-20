@@ -1,14 +1,25 @@
+import os
 import h5py
 import numpy as np
-import os
+from dataset import DatapointKey
+from data_manager import DataManager
 
 
 def check_SSW(m_temp_gradient, ssw):
+    """Checks whether a potential SSW also causes a meridional temperature
+    gradient reversal (defined as the zonal-mean temperatures averaged
+    from 80° to 90°N minus the temperatures averaged from 60° to 70°N)
+
+    :param m_temp_gradient: Array which contains meridional temperature
+    gradient through a winter.
+    :param ssw: Potential indexes for SSW events
+    :return: Indices of SSW events that conform to the U&T definition
+    """
     return any(x > 0 for x in m_temp_gradient[ssw - 10: ssw + 10])
 
 
-def UnT(data):
-    """ Given a data matrix of winter, checks SSW events that conform
+def UnT(xi):
+    """Given a data matrix of winter, checks SSW events that conform
     to U&T definition:
 
     Events occur when the zonal-mean zonal winds at 10 hPa and
@@ -23,10 +34,9 @@ def UnT(data):
 
     Parameters
     ----------
-        data: np.array
-            data which contains timeseries for
-            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-            in the given order
+        xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
 
     Returns
@@ -37,19 +47,21 @@ def UnT(data):
     """
 
     # temp_80_90 - temp_60_70
-    m_temp_gradient = data[2] - data[1]
-    potential_SSWs = SSWs_wind_reversal(data, 3)
+    m_temp_gradient = xi[DatapointKey.TEMP_80_90] - xi[DatapointKey.TEMP_60_70]
+    potential_SSWs = SSWs_wind_reversal(xi, DatapointKey.WIND_60)
 
-    SSWs = [ssw for ssw in potential_SSWs if check_SSW(m_temp_gradient, ssw)]
-    SSWmask = np.zeros(data[1].shape, bool)
+    SSWs = [ssw for ssw in potential_SSWs if
+            check_SSW(m_temp_gradient, ssw)]
+
+    SSWmask = np.zeros(xi[DatapointKey.WIND_60].shape, bool)
 
     SSWmask[SSWs] = True
 
     return SSWmask
 
 
-def CP07(data):
-    """ Given a data matrix of winter, checks SSW events that conform
+def CP07(xi):
+    """Given a data matrix of winter, checks SSW events that conform
     to CP07 definition:
 
     Events occur when the zonal-mean zonal winds at 10 hPa and 60°N
@@ -60,10 +72,9 @@ def CP07(data):
 
     Parameters
     ----------
-         data: np.array
-            data which contains timeseries for
-            [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-            in the given order
+         xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
 
     Returns
@@ -71,14 +82,15 @@ def CP07(data):
          SSWs: list[int]
             A mask of booleans which includes SSW dates for each winter day
     """
-    SSWs = SSWs_wind_reversal(data, 3)
-    SSWmask = np.zeros(data[1].shape, bool)
+
+    SSWs = SSWs_wind_reversal(xi, DatapointKey.WIND_60)
+    SSWmask = np.zeros(xi[DatapointKey.WIND_60].shape, bool)
 
     SSWmask[SSWs] = True
     return SSWmask
 
 
-def U65(data):
+def U65(xi):
     """Given a data matrix of winter, checks SSW events that conform
     to U65 definition:
 
@@ -87,10 +99,9 @@ def U65(data):
 
     Parameters
     ----------
-        data: np.array
-        data which contains timeseries for
-        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-        in the given order
+        xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
 
     Returns
@@ -99,25 +110,24 @@ def U65(data):
             A mask of booleans which includes SSW dates for each winter day
     """
 
-    SSWs = SSWs_wind_reversal(data, 4)
-    SSWmask = np.zeros(data[1].shape, bool)
+    SSWs = SSWs_wind_reversal(xi, DatapointKey.WIND_65)
+    SSWmask = np.zeros(xi[DatapointKey.WIND_65].shape, bool)
 
     SSWmask[SSWs] = True
     return SSWmask
 
 
-def SSWs_wind_reversal(data, data_index):
+def SSWs_wind_reversal(xi, datatype_name):
     """Given a data matrix of winter, checks whether a wind reversal
     that might be an SSW happened or not.
 
     Parameters
     ----------
-         data: data: np.array
-                data which contains timeseries for
-                [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-                in the given order
+         xi:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for one year
 
-         data_index: index of which array is going to be used
+         datatype_name: name of which numpy array is going to be used
          (i.e. wind_60, wind_65)
 
     Returns
@@ -136,7 +146,7 @@ def SSWs_wind_reversal(data, data_index):
     # Number of consecutive days when the winds are westerly
     streak = 0
 
-    for i, wind in enumerate(data[data_index, :]):
+    for i, wind in enumerate(xi[datatype_name][:]):
 
         # If wind is westerly, increase the streak
         if wind >= 0:
@@ -165,7 +175,6 @@ def SSWs_wind_reversal(data, data_index):
     return SSWs
 
 
-# TODO: Fix there is a problem with this defn.
 def zpol_with_temp(data):
     """Given a data matrix of winter, checks SSW events that conform
     to ZPOL definition, but uses temperature instead of geopotential:
@@ -181,10 +190,10 @@ def zpol_with_temp(data):
 
     Parameters
     ----------
-        data: np.array
-        data which contains timeseries for
-        [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-        in the given order
+        data:dict
+         data which contains time series for [temp_60_90, temp_60_70,
+         temp_80_90, wind_60, wind_65] as a dictionary for each year
+         in the dataset.
 
 
     Returns
@@ -193,35 +202,57 @@ def zpol_with_temp(data):
             A mask of booleans which includes SSW dates for each winter day
     """
 
-    # January February March timeseries
-    jfm_timeseries = data[0][90:180]
-    jfm_mean = np.mean(jfm_timeseries)
-    jfm_std = np.std(jfm_timeseries)
+    def zpol_with_temp_single(xi, jfm_mean, jfm_std):
 
-    # standardization of winter time-series using JFM mean
-    standardized_winter = (data[0] - jfm_mean) / jfm_std
-    potentialSSWs = [i for i, val in enumerate(standardized_winter) if val > 3]
-    SSWs = []
+        # Standardization of winter time-series using JFM mean
+        standardized_winter = (xi[DatapointKey.TEMP_60_90] - jfm_mean) / jfm_std
 
-    # If potential SSW is in the first 3 months of winter and there
-    # are at least 2 months between SSWs
-    cur = None
-    for SSW in potentialSSWs:
-        if (cur is None or SSW - 60 > cur) and SSW < 180:
-            cur = SSW
-            SSWs.append(SSW)
+        # Label as an SSW event if the temperature is 3 stdev more
+        # than JFM mean
+        potentialSSWs = [i for i, val in enumerate(standardized_winter)
+                         if val > 3]
+        SSWs = []
 
-    SSWmask = np.zeros(data[0].shape, bool)
+        # If potential SSW is in the first 3 months of winter and there
+        # are at least 2 months between SSWs
+        cur = None
+        for SSW in potentialSSWs:
+            if (cur is None or SSW - 60 > cur) and SSW < 180:
+                cur = SSW
+                SSWs.append(SSW)
 
-    SSWmask[SSWs] = True
-    return SSWmask
+        SSWmask = np.zeros(xi[DatapointKey.TEMP_60_90].shape, bool)
+
+        SSWmask[SSWs] = True
+        return SSWmask
+
+    # For each year, extract the time series for temp_60_90 between days
+    # 90 - 180 -> January, February, March
+    jfm_timeseries = data[DatapointKey.TEMP_60_90][:, 90:180]
+
+    # Take mean for each winter (JFM time series of temp_60_90)
+    jfm_mean = np.mean(jfm_timeseries, axis=1)
+
+    # Get number of years in the data
+    number_of_years = len(jfm_mean)
+
+    # Take standard deviation of these means to derive JFM stdev
+    jfm_std = np.std(jfm_mean)
+    jfm_mean = np.mean(jfm_mean)
+
+    # Create a list of dictionaries which contain each data field
+    # for a year to iterate
+    winters = [{data_field: data[data_field][i, :] for data_field in data.keys()}
+               for i in range(number_of_years)]
+
+    return [zpol_with_temp_single(xi, jfm_mean, jfm_std) for xi in winters]
 
 
 definitions = {
-    "U&T": UnT,
-    "CP07": CP07,
-    "U65": U65,
-    "ZPOL_temp": zpol_with_temp
+    DatapointKey.UT: UnT,
+    DatapointKey.CP07: CP07,
+    DatapointKey.U65: U65,
+    DatapointKey.ZPOL: zpol_with_temp
 }
 
 
@@ -232,10 +263,10 @@ def create_labels(data, definition):
 
     Parameters
     ----------
-         data: np.array
-            data which contains timeseries for
+         data: dict
+            data which contains time series for
             [temp_60_90, temp_60_70, temp_80_90, wind_60, wind_65]
-            in the given order
+            as a dictionary
 
          definition: str
                 definition type (i.e. CP07)
@@ -252,7 +283,20 @@ def create_labels(data, definition):
             .format(definition, list(definitions.keys())))
 
     f = definitions[definition]
-    return [f(xi) for xi in data]
+
+    if definition == DatapointKey.ZPOL:
+        return f(data)
+    else:
+        # Get number of years in the data set
+        number_of_years = len(data[DatapointKey.WIND_60])
+
+        # Create a list of dictionaries which contain each data field
+        # for a year to iterate
+        winters = [{data_field: data[data_field][i, :] for data_field in data.keys()}
+                   for i in range(number_of_years)]
+
+        return [f(xi) for xi in winters]
+
 
 
 def get_available_definitions():
@@ -262,36 +306,49 @@ def get_available_definitions():
 def label_dataset(path_in, path_out):
     print("Labelling data from {}".format(path_in))
     # Load data from h5 file
-    f = h5py.File(path_in, 'r')
+    f = h5py.File(path_in, "r")
+
+    # To persist the labeled data as a new h5 file
+    f2 = h5py.File(path_out, "a")
+
+    # Create a datamanager for input data.
+    data_manager = DataManager(path_in)
 
     # Get group names and dictionary names
-    data_fields = \
-        ['temp_60_90', 'temp_60_70', 'temp_80_90', 'wind_60', 'wind_65']
-    keys = list(f.keys())
+    data_fields = [DatapointKey.TEMP_60_90,
+                   DatapointKey.TEMP_60_70,
+                   DatapointKey.TEMP_80_90,
+                   DatapointKey.WIND_60,
+                   DatapointKey.WIND_65]
 
-    print("Processing data...")
-    # Get data and label it
-    dat = np.array(
-        [[f[key][data_field] for data_field in data_fields] for key in keys])
+    keys = list(set(f.keys()) - set(f2.keys()))
 
-    print("Creating labels...")
-    labels = [create_labels(dat, definition) for definition in
-              get_available_definitions()]
+    if len(keys) > 0:
+        print("Processing data...")
 
-    print("Writing labelled outputs...")
-    # Persist the labeled data as a new h5 file
-    f2 = h5py.File(path_out, "w")
+        dat = {data_field: data_manager.get_data_for_variable(data_field)
+               for data_field in data_fields}
 
-    for i, key in enumerate(keys):
-        g = f2.create_group(key)
+        print("Creating labels...")
+        labels = [create_labels(dat, definition) for definition in
+                  get_available_definitions()]
 
-        for var in data_fields:
-            g.create_dataset(var, data=f[key][var], dtype=np.double)
-        for j, label in enumerate(get_available_definitions()):
-            g.create_dataset(label, data=labels[j][i], dtype=np.bool)
+        print("Writing labelled outputs...")
+
+        for i, key in enumerate(keys):
+            g = f2.create_group(key)
+
+            for var in data_fields:
+                g.create_dataset(var, data=f[key][var], dtype=np.double)
+            for j, label in enumerate(get_available_definitions()):
+                g.create_dataset(label, data=labels[j][i], dtype=np.bool)
+
+        print("Written to {}".format(path_out))
+
+    else:
+        print("Labeled data up-to-date! No keys to add.")
 
     f2.close()
-    print("Written to {}".format(path_out))
 
 
 if __name__ == '__main__':
