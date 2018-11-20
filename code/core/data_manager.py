@@ -40,6 +40,19 @@ class DataManager:
             self.data_dict[variable] = self._get_np_array(variable)
         return self.data_dict[variable]
 
+    def get_data_for_variables(self, variables):
+        """
+        Returns a 3D numpy array for a number of variables
+        :param variables:
+        :return: np.array
+        """
+        # TODO: Check that this function is working properly
+        data = np.array(list(self.get_data_for_variable(v) for v in variables))
+        # Feature Count, Number of samples, Number of Days
+        FC, N, D = data.shape
+        data = np.reshape(data, (N, FC, D))
+        return data
+
 
 if __name__ == "__main__":
     dm = DataManager(
