@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 import pandas as pd
 import argparse
-from data_manager import DataManager
+from core.data_manager import DataManager
 from tsfresh import extract_features
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
