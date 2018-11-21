@@ -7,7 +7,7 @@ from xgboost import XGBClassifier
 from classification.xgboost_simple import ManualAndXGBoost
 from prediction_set import PredictionSet
 from sklearn.model_selection import train_test_split, GridSearchCV
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import ADASYN
 
 
 class XGBoostPredict(ManualAndXGBoost):
@@ -42,7 +42,7 @@ class XGBoostPredict(ManualAndXGBoost):
         self.prediction_set = PredictionSet(definition, path, cutoff_point,
                                             prediction_interval)
 
-    def _bring_data_to_format(self, temp_data):
+    def _stack_variables_and_resample(self, temp_data, labels):
         """Brings data to the right format for features engineering and training
         a classifier. More specifically it gets a 3D array of dimensions of (N,
         FC, D) and returns a 2D array of dimensions (N*FC, D) where 3
@@ -58,11 +58,30 @@ class XGBoostPredict(ManualAndXGBoost):
             data: np.array
                 a numpy array of dimensions (N*FC, D)
         """
-        feature_count = temp_data.shape[1]
+        self.feature_count = temp_data.shape[1]
         data = []
         for i in range(len(temp_data)):
-            for j in range(feature_count):
-                data.append(temp_data[i, j, :])
+            for j in range(len(temp_data[i])):
+                if j % self.feature_count == self.feature_count - 1:
+                    data.append(np.hstack((temp_data[i, j],
+                                           temp_data[i, j-1],
+                                           temp_data[i, j-2])))
+
+        X_train, X_test, y_train, y_test = train_test_split(
+                        data, labels, test_size=0.2,
+                        stratify=labels, random_state=42)
+        X_train, y_train = ADASYN(random_state=42).fit_resample(X_train,
+                                                                y_train)
+
+        return X_train, y_train, X_test, y_test
+
+    def _split_variables(self, temp_data):
+        data = []
+        for row in temp_data:
+            split_variables = np.split(row, self.feature_count)
+            for array in split_variables:
+                data.append(array)
+
         data = np.array(data)
         return data
 
@@ -101,18 +120,18 @@ class XGBoostPredict(ManualAndXGBoost):
             # before the feature engineering
             print("Didn't find the .pkl file of the features. Producing it",
                   "now, under the pickle path folder")
+            # returns data in format (N, FC, D)
             data = self.prediction_set.cutoff_for_prediction()
-            data = self._bring_data_to_format(data)
-            features = self._produce_features(data)
+            X_train, y_train, X_test, y_test = \
+                self._stack_variables_and_resample(data, labels)
+            print(np.unique(y_test[:], return_counts=True))
+            X_train = self._split_variables(X_train)
+            X_test = self._split_variables(X_test)
+            X_train = self._produce_features(X_train)
+            X_test = self._produce_features(X_test)
             with open(str(self.pickle_path), 'wb') as f:
                 pickle.dump([features, self.feature_keys], f)
 
-        features = np.nan_to_num(features)
-        X_train, X_test, y_train, y_test = train_test_split(
-                        features, labels, test_size=0.2,
-                        stratify=labels, random_state=42)
-        X_train, y_train = SMOTE().fit_resample(X_train, y_train)
-        print(np.unique(y_test[:], return_counts=True))
         return X_train, X_test, y_train, y_test
 
     def tune_classifier(self, X_train, y_train):
