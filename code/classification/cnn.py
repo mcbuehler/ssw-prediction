@@ -16,14 +16,10 @@ class SSWDataset(data.Dataset):
     # A dictionary which indicates which time series is going
     # to be used in the classifier
     data_to_use = {
-        DPK.CP07: [DPK.WIND_65, DPK.TEMP_80_90, DPK.TEMP_60_70,
-                   DPK.TEMP_60_90, DPK.WIND_60],
-        DPK.UT: [DPK.WIND_65, DPK.TEMP_80_90, DPK.TEMP_60_70,
-                 DPK.TEMP_60_90, DPK.WIND_60],
-        DPK.U65: [DPK.WIND_65, DPK.TEMP_80_90, DPK.TEMP_60_70,
-                  DPK.TEMP_60_90, DPK.WIND_60],
-        DPK.ZPOL: [DPK.WIND_65, DPK.TEMP_80_90, DPK.TEMP_60_70,
-                   DPK.TEMP_60_90, DPK.WIND_60],
+        DPK.CP07: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
+        DPK.UT: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
+        DPK.U65: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
+        DPK.ZPOL: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
     }
 
     def __init__(self, file_path, label_type, train=True):
@@ -156,12 +152,12 @@ class ConvNetClassifier():
 
 
 if __name__ == '__main__':
-    path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
-    filename = os.path.join(path_preprocessed, "data_labeled.h5")
-    # filename = '../data/data_labeled.h5'
+    #path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
+    #filename = os.path.join(path_preprocessed, "data_labeled.h5")
+    filename = '/home/orhun/PycharmProjects/DSL2018-Proj-Climate-Science/data/data_preprocessed_labeled.h5'
     definitions = [DPK.CP07, DPK.UT, DPK.U65, DPK.ZPOL]
 
     for definition in definitions:
         classifier = ConvNetClassifier(filename, definition)
-        classifier.train(num_epochs=50, batch_size=32, learning_rate=0.001)
+        classifier.train(num_epochs=100, batch_size=16, learning_rate=0.0004)
         classifier.test()
