@@ -110,27 +110,33 @@ class XGBoostPredict(ManualAndXGBoost):
         labels = np.ravel(self.prediction_set.get_labels_for_prediction())
         # get distribution of the labels
         # print(np.unique(labels[:], return_counts=True))
+        # sys.exit(0)
         try:
             with open(str(self.pickle_path), 'rb') as f:
-                features, self.feature_keys = pickle.load(f)
-            features = np.array(features)
-            print(features.shape)
+                X_train, y_train, X_test, y_test, self.feature_keys = \
+                    pickle.load(f)
+            X_train = np.array(X_train)
+            y_train = np.array(y_train)
+            X_test = np.array(X_test)
+            y_test = np.array(y_test)
+            print(X_train.shape)
+            print(y_train.shape)
+            print(X_test.shape)
+            print(y_test.shape)
         except FileNotFoundError:
-            # TODO: refactor code so that the test-train split is being done
-            # before the feature engineering
             print("Didn't find the .pkl file of the features. Producing it",
                   "now, under the pickle path folder")
             # returns data in format (N, FC, D)
             data = self.prediction_set.cutoff_for_prediction()
             X_train, y_train, X_test, y_test = \
                 self._stack_variables_and_resample(data, labels)
-            print(np.unique(y_test[:], return_counts=True))
             X_train = self._split_variables(X_train)
             X_test = self._split_variables(X_test)
             X_train = self._produce_features(X_train)
             X_test = self._produce_features(X_test)
             with open(str(self.pickle_path), 'wb') as f:
-                pickle.dump([features, self.feature_keys], f)
+                pickle.dump([X_train, y_train, X_test, y_test,
+                             self.feature_keys], f)
 
         return X_train, X_test, y_train, y_test
 
