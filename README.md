@@ -13,4 +13,6 @@ How to run:
 `python code/run_label_generation.py`
 
 In order to run the code you have to set up your PYTHONPATH to the code folder
-```export PYTHONPATH="${PYTHONPATH}:/where/the/code/folder/is/```
+```export PYTHONPATH="${PYTHONPATH}:/where/the/code/folder/is/"```
+In order to run the jupyter notebooks you have to set up your jupyter path to the code folder
+```export JUPYTER_PATH="${JUPYTER_PATH}:/where/the/code/folder/is/"```
