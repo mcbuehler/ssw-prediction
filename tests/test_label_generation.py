@@ -20,7 +20,7 @@ class TestLabeling(unittest.TestCase):
             [[f[key][data_field] for data_field in data_fields] for key in keys[:10]])
 
     def test_UnT(self):
-        masks = [run_label_generation.UnT(data) for data in self.data]
+        masks = run_label_generation.UnT(self.data)
 
         for i, mask in enumerate(masks):
             # The first day of SSW has reversed wind
@@ -30,7 +30,7 @@ class TestLabeling(unittest.TestCase):
             self.assertTrue(all(self.data[i, 3, :][mask2] > 0))
 
     def test_CP07(self):
-        masks = [run_label_generation.CP07(data) for data in self.data]
+        masks = run_label_generation.CP07(self.data)
 
         for i, mask in enumerate(masks):
             # The first day of SSW has reversed wind
@@ -40,7 +40,7 @@ class TestLabeling(unittest.TestCase):
             self.assertTrue(all(self.data[i, 3, :][mask2] > 0))
 
     def test_U65(self):
-        masks = [run_label_generation.U65(data) for data in self.data]
+        masks = run_label_generation.U65(self.data)
 
         for i, mask in enumerate(masks):
             # The first day of SSW has reversed wind
