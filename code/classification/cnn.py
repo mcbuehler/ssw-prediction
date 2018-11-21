@@ -8,6 +8,7 @@ import torch.utils.data as data
 from data_manager import DataManager
 from dataset import DatapointKey as DPK
 from sklearn.model_selection import train_test_split
+import setGPU
 
 
 class SSWDataset(data.Dataset):
@@ -75,7 +76,7 @@ class ConvNetClassifier():
         :param label_type: Definition to be used for labeling (i.e. "CP07")
         """
         # Device configuration
-        device = torch.device('cuda:' + ConvNetClassifier.get_free_gpu()
+        device = torch.device('cuda:' + os.getenv("CUDA_VISIBLE_DEVICES")
                               if torch.cuda.is_available() else 'cpu')
 
         self.label_type = label_type
@@ -94,7 +95,7 @@ class ConvNetClassifier():
         :param learning_rate: Learning rate for Adam optimizer
         """
         # Device configuration
-        device = torch.device('cuda:' + ConvNetClassifier.get_free_gpu()
+        device = torch.device('cuda:' + os.getenv("CUDA_VISIBLE_DEVICES")
                               if torch.cuda.is_available() else 'cpu')
 
         train_loader = torch.utils.data.DataLoader(dataset=self.train_dataset,
@@ -127,7 +128,7 @@ class ConvNetClassifier():
         Function to test the CNN.
         """
         # Device configuration
-        device = torch.device('cuda:' + ConvNetClassifier.get_free_gpu()
+        device = torch.device('cuda:' + os.getenv("CUDA_VISIBLE_DEVICES")
                               if torch.cuda.is_available() else 'cpu')
 
         test_loader = torch.utils.data.DataLoader(dataset=self.test_dataset,
@@ -151,18 +152,6 @@ class ConvNetClassifier():
 
             print('Test Accuracy of the model on the {} test winters: {} %'.
                   format(len(test_loader.dataset), 100 * correct / total))
-
-    @staticmethod
-    def get_free_gpu():
-        """
-        Function which returns the index of GPU with maximum memory available.
-        Uses nvdia-smi command
-        """
-        os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
-        memory_available = [int(x.split()[2]) for x
-                            in open('tmp', 'r').readlines()]
-        os.system('rm tmp')
-        return str(np.argmax(memory_available))
 
 
 if __name__ == '__main__':
