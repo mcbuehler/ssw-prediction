@@ -1,4 +1,5 @@
 import os
+import cnn_model
 import numpy as np
 import torch
 import torch.nn as nn
@@ -64,27 +65,6 @@ class SSWDataset(data.Dataset):
         return self.data.shape[0]
 
 
-class ConvNet(nn.Module):
-    def __init__(self, input_channels):
-        super(ConvNet, self).__init__()
-        self.layer1 = nn.Sequential(
-            nn.Conv1d(input_channels, 16, kernel_size=10, stride=1),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2, stride=2))
-        self.layer2 = nn.Sequential(
-            nn.Conv1d(16, 32, kernel_size=10, stride=1),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2, stride=2))
-        self.fc = nn.Linear(1440, 2)
-
-    def forward(self, x):
-        out = self.layer1(x)
-        out = self.layer2(out)
-        out = out.reshape(out.size(0), -1)
-        out = self.fc(out)
-        return out
-
-
 class ConvNetClassifier():
 
     def __init__(self, file_path, label_type):
@@ -93,21 +73,29 @@ class ConvNetClassifier():
         :param file_path: Path to h5 file which contains labeled dataset
         :param label_type: Definition to be used for labeling (i.e. "CP07")
         """
+        # Device configuration
+        device = torch.device('cuda:' + ConvNetClassifier.get_free_gpu()
+                              if torch.cuda.is_available() else 'cpu')
+
         self.label_type = label_type
         self.train_dataset = SSWDataset(file_path, self.label_type)
         self.test_dataset = SSWDataset(file_path, self.label_type, train=False)
 
         # Number of channels in the CNN - number of features to use
         num_ts = len(SSWDataset.data_to_use[self.label_type])
-        self.model = ConvNet(num_ts)
+        self.model = cnn_model.ConvNet(num_ts).to(device)
 
-    def train(self, num_epochs=100, batch_size=16, learning_rate=0.001):
+    def train(self, num_epochs=100, batch_size=16, learning_rate=0.0004):
         """
         Function to train the CNN.
         :param num_epochs: Number of Epochs to train the network
         :param batch_size: Batch size for training
         :param learning_rate: Learning rate for Adam optimizer
         """
+        # Device configuration
+        device = torch.device('cuda:'+ ConvNetClassifier.get_free_gpu()
+                              if torch.cuda.is_available() else 'cpu')
+
         train_loader = torch.utils.data.DataLoader(dataset=self.train_dataset,
                                                    batch_size=batch_size,
                                                    shuffle=True)
@@ -121,6 +109,9 @@ class ConvNetClassifier():
 
         for epoch in range(num_epochs):
             for i, (winters, labels) in enumerate(train_loader):
+                winters = winters.to(device)
+                labels = labels.to(device)
+
                 # Forward pass
                 outputs = self.model(winters)
                 loss = criterion(outputs, labels)
@@ -134,6 +125,10 @@ class ConvNetClassifier():
         """
         Function to test the CNN.
         """
+        # Device configuration
+        device = torch.device('cuda:' + ConvNetClassifier.get_free_gpu()
+                              if torch.cuda.is_available() else 'cpu')
+
         test_loader = torch.utils.data.DataLoader(dataset=self.test_dataset,
                                                   shuffle=False)
 
@@ -144,6 +139,9 @@ class ConvNetClassifier():
             total = 0
 
             for winters, labels in test_loader:
+                winters = winters.to(device)
+                labels = labels.to(device)
+
                 outputs = self.model(winters)
                 _, predicted = torch.max(outputs.data, 1)
 
@@ -153,14 +151,23 @@ class ConvNetClassifier():
             print('Test Accuracy of the model on the {} test winters: {} %'.
                   format(len(test_loader.dataset), 100 * correct / total))
 
+    @staticmethod
+    def get_free_gpu():
+        """
+        Function which returns the index of GPU with maximum memry available.
+        Uses nvdia-smi command
+        """
+        os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
+        memory_available = [int(x.split()[2]) for x
+                            in open('tmp', 'r').readlines()]
+        return str(np.argmax(memory_available))
 
 if __name__ == '__main__':
-    #path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
-    #filename = os.path.join(path_preprocessed, "data_labeled.h5")
-    filename = '/home/orhun/PycharmProjects/DSL2018-Proj-Climate-Science/data/data_preprocessed_labeled.h5'
+    path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
+    filename = os.path.join(path_preprocessed, "data_labeled.h5")
     definitions = [DPK.CP07, DPK.UT, DPK.U65, DPK.ZPOL]
 
     for definition in definitions:
         classifier = ConvNetClassifier(filename, definition)
-        classifier.train(num_epochs=100, batch_size=16, learning_rate=0.0004)
+        classifier.train(num_epochs=100, batch_size=8, learning_rate=0.0004)
         classifier.test()
