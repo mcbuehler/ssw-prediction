@@ -10,7 +10,10 @@ from sklearn.model_selection import train_test_split
 
 class SSWDataset(data.Dataset):
     """
-    Extends PyTorch's data.Dataset class to
+    Extends PyTorch's data.Dataset class to provide a dataset for PyTorch
+    models. It creates a training and test dataset. It packs "wind_65",
+    "temp_60_90" and "wind_60" as features and SSW_definition as yearly
+    labels as prompted by the user
     """
 
     # A dictionary which indicates which time series is going
