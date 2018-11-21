@@ -155,12 +155,13 @@ class ConvNetClassifier():
     @staticmethod
     def get_free_gpu():
         """
-        Function which returns the index of GPU with maximum memry available.
+        Function which returns the index of GPU with maximum memory available.
         Uses nvdia-smi command
         """
         os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
         memory_available = [int(x.split()[2]) for x
                             in open('tmp', 'r').readlines()]
+        os.system('rm tmp')
         return str(np.argmax(memory_available))
 
 
