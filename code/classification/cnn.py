@@ -1,4 +1,5 @@
 import os
+
 import cnn_model
 import numpy as np
 import torch
@@ -93,7 +94,7 @@ class ConvNetClassifier():
         :param learning_rate: Learning rate for Adam optimizer
         """
         # Device configuration
-        device = torch.device('cuda:'+ ConvNetClassifier.get_free_gpu()
+        device = torch.device('cuda:' + ConvNetClassifier.get_free_gpu()
                               if torch.cuda.is_available() else 'cpu')
 
         train_loader = torch.utils.data.DataLoader(dataset=self.train_dataset,
@@ -161,6 +162,7 @@ class ConvNetClassifier():
         memory_available = [int(x.split()[2]) for x
                             in open('tmp', 'r').readlines()]
         return str(np.argmax(memory_available))
+
 
 if __name__ == '__main__':
     path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
