@@ -49,8 +49,7 @@ class DataManager:
         # TODO: Check that this function is working properly
         data = np.array(list(self.get_data_for_variable(v) for v in variables))
         # Feature Count, Number of samples, Number of Days
-        FC, N, D = data.shape
-        data = np.reshape(data, (N, FC, D))
+        data = np.swapaxes(data, 0, 1)
         return data
 
 
