@@ -8,7 +8,7 @@ import torch.utils.data as data
 from data_manager import DataManager
 from dataset import DatapointKey as DPK
 from sklearn.model_selection import train_test_split
-import setGPU
+from utils.set_gpu import set_gpu
 
 
 class SSWDataset(data.Dataset):
@@ -155,6 +155,7 @@ class ConvNetClassifier():
 
 
 if __name__ == '__main__':
+    set_gpu()
     path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
     filename = os.path.join(path_preprocessed, "data_labeled.h5")
     definitions = [DPK.CP07, DPK.UT, DPK.U65]
