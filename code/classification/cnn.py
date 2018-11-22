@@ -157,7 +157,7 @@ class ConvNetClassifier():
 if __name__ == '__main__':
     path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
     filename = os.path.join(path_preprocessed, "data_labeled.h5")
-    definitions = [DPK.CP07, DPK.UT, DPK.U65, DPK.ZPOL]
+    definitions = [DPK.CP07, DPK.UT, DPK.U65]
 
     for definition in definitions:
         classifier = ConvNetClassifier(filename, definition)
