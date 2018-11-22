@@ -1,8 +1,9 @@
 import os
+
 import h5py
 import numpy as np
-from dataset import DatapointKey
 from data_manager import DataManager
+from dataset import DatapointKey
 
 
 def check_SSW(m_temp_gradient, ssw):
@@ -335,7 +336,7 @@ def label_dataset(path_in, path_out):
 
         print("Writing labelled outputs...")
 
-        for i, key in enumerate(keys):
+        for i, key in enumerate(list(data_manager.data_file.keys())):
             g = f2.create_group(key)
 
             for var in data_fields:
