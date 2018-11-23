@@ -82,9 +82,7 @@ class CutoffWindowPredictionSet(PredictionSetBase):
             prediction_interval: int
                 the interval where you will do predictions in
         """
-        super(CutoffWindowPredictionSet, self).__init__(definition, path,
-                                                        cutoff_point,
-                                                        prediction_interval)
+        super().__init__(definition, path, cutoff_point, prediction_interval)
 
     def get_features(self):
         """Returns the data as a numpy array for the variables wind_60,
@@ -121,9 +119,7 @@ class FixedWindowPredictionSet(PredictionSetBase):
             feature_interval: int
                 the interval where you will extract features from
         """
-        super(FixedWindowPredictionSet, self).__init__(definition, path,
-                                                       cutoff_point,
-                                                       prediction_interval)
+        super().__init__(definition, path, cutoff_point, prediction_interval)
 
         # We need to make sure that we don't access negative indices
         assert (self.cutoff_point - feature_interval) >= 0
