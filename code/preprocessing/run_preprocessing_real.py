@@ -49,6 +49,7 @@ def process_single_year(input_dir, year):
             raise LookupError("File located at: {} does not exist."
                               .format(path))
 
+    # Create datapoint for the set
     p = RealDataPointFactory.create(first_winter_u_name, second_winter_u_name,
                                     first_winter_t_name, second_winter_t_name)
 
