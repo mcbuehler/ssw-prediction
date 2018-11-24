@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 
 class PreprocessorReal:
     """
-    A class to preprocess takes two years as real data from JRA-55 database
+    A class to preprocess, takes two years as real data from JRA-55 data
     and returns the variables of interest for a whole winter.
     """
 
