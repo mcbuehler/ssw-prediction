@@ -182,6 +182,7 @@ class RealDataPointFactory:
     def create(first_winter_u_name, second_winter_u_name,
                first_winter_t_name, second_winter_t_name):
         """
+        Factory method to create data points from nc files
 
         :param first_winter_u_name: The path of nc of the
         first winter's wind (u component)
