@@ -6,6 +6,7 @@ from data_manager import DataManager
 from dataset import DatapointKey
 import argparse
 
+
 def check_SSW(m_temp_gradient, ssw):
     """Checks whether a potential SSW also causes a meridional temperature
     gradient reversal (defined as the zonal-mean temperatures averaged
@@ -354,7 +355,9 @@ def label_dataset(path_in, path_out):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--real', help='Use this flag if you want to label real data', action='store_true')
+    parser.add_argument('--real',
+                        help='Use this flag if you want to label real data',
+                        action='store_true')
     args = parser.parse_args()
 
     if args.real:
