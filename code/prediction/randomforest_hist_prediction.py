@@ -183,7 +183,3 @@ if __name__ == '__main__':
             path=args.input_path
             )
     model.evaluate(plot=True)
-
-
-
-
