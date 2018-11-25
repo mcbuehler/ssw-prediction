@@ -10,7 +10,7 @@ class PreprocessorReal:
     """
 
     # Pressure level of interest
-    USEFUL_PRES = 10000
+    USEFUL_PRES = 1000
 
     # A cutoff which specifies how many days we should get from the end of the
     # first year. Because of leap years, the starting day of the winter
