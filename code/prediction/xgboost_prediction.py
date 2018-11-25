@@ -3,64 +3,219 @@ import pickle
 # import sys
 import numpy as np
 from sklearn.metrics import f1_score, roc_auc_score
-from xgboost_simple import ManualAndXGBoost
-from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
+from classification.xgboost_simple import ManualAndXGBoost
+from prediction_set import PredictionSet
+from sklearn.model_selection import train_test_split, GridSearchCV
+from imblearn.over_sampling import ADASYN
 
 
 class XGBoostPredict(ManualAndXGBoost):
-    def __init__(self, definition, path, pickle_path, cutoff_point,
-                 max_prediction):
-        super().__init__(definition, path, pickle_path)
-        self.cutoff_point = cutoff_point
-        self.prediction_interval = list(range(5, max_prediction + 1, 5))
+    """A class that receives as input the processed data and the definition that
+    you want prediction for and does prediction using the XGBoost Classifier.
+    It inherits from the ManualAndXGBoost class that does classification in
+    order to avoid code repetition. It also uses the PredictionSet class to
+    create the labels and the train/test set.
+    """
 
-    def _get_labels_for_prediction(self):
-        temp_labels = self.data_manager.get_data_for_variable(self.definition)
-        labels = np.zeros((
-                        temp_labels.shape[0], len(self.prediction_interval)))
-        for i in range(len(temp_labels)):
-            for j, offset in enumerate(self.prediction_interval):
-                labels[i, j] = int(np.any(
-                                   temp_labels[i, self.cutoff_point:
-                                               self.cutoff_point + offset]))
-        return labels
+    def __init__(self, definition, path, pickle_path, cutoff_point,
+                 prediction_interval):
+        """The constructor of the XGBoostPredict class
+
+        Parameters
+        ----------
+            definition: string
+                the definition that you want to do classification for
+            path: string
+                the path where the input data are
+            pickle_path: string
+                the path where you will store the pickle file that contains the
+                labels
+            cutoff_point: int
+                the maximum cutoff point until where your data will expand
+            prediction_interval: int
+                the interval where you will do predictions in
+        """
+
+        self.prediction_interval = prediction_interval
+        self.pickle_path = pickle_path
+        self.prediction_set = PredictionSet(definition, path, cutoff_point,
+                                            prediction_interval)
+
+    def _stack_variables_and_resample(self, temp_data, labels):
+        """Brings data to the right format for features engineering and training
+        a classifier. More specifically it gets a 3D array of dimensions of (N,
+        FC, D) and returns a 2D array of dimensions (N*FC, D) where 3
+        consecutive lines belong in different features
+
+
+        Parameters
+        -------
+            temp_data: np.array
+                a numpy array of dimensions (N, FC, D)
+        Returns
+        -------
+            data: np.array
+                a numpy array of dimensions (N*FC, D)
+        """
+        self.feature_count = temp_data.shape[1]
+        data = []
+        for i in range(len(temp_data)):
+            for j in range(len(temp_data[i])):
+                if j % self.feature_count == self.feature_count - 1:
+                    data.append(np.hstack((temp_data[i, j],
+                                           temp_data[i, j-1],
+                                           temp_data[i, j-2])))
+
+        X_train, X_test, y_train, y_test = train_test_split(
+                        data, labels, test_size=0.2,
+                        stratify=labels, random_state=42)
+        X_train, y_train = ADASYN(random_state=42).fit_resample(X_train,
+                                                                y_train)
+
+        return X_train, y_train, X_test, y_test
+
+    def _split_variables(self, temp_data):
+        data = []
+        for row in temp_data:
+            split_variables = np.split(row, self.feature_count)
+            for array in split_variables:
+                data.append(array)
+
+        data = np.array(data)
+        return data
 
     def preprocess_as_prediction(self):
-        labels = self._get_labels_for_prediction()
+        """This function produces the train and the test split of the features
+        as well as the train and the test split of the labels. In order to do
+        that it uses other functions to produce the labels and the features. It
+        first checks if the labels are in the corresponding folder provided as
+        an argument to the class and if not it produces them. Then it does the
+        splitting.
+
+        Returns
+        -------
+            X_train: numpy array
+                A numpy array of shape [num_data x num_features] that contains
+                the training data
+            X_test: numpy array
+                A numpy array of shape [num_data x num_features] that contains
+                the test data
+            y_train: numpy array
+                A numpy array of shape [num_data] that contains the training
+                labels
+            y_test: numpy array
+                A numpy array of shape [num_data] that contains the test labels
+        """
+        labels = np.ravel(self.prediction_set.get_labels_for_prediction())
         # get distribution of the labels
-        # for i in range(len(self.prediction_interval)):
-        #     print(np.unique(labels[:, i], return_counts=True))
+        # print(np.unique(labels[:], return_counts=True))
+        # sys.exit(0)
         try:
             with open(str(self.pickle_path), 'rb') as f:
-                features, self.feature_keys = pickle.load(f)
-            features = np.array(features)
+                X_train, y_train, X_test, y_test, self.feature_keys = \
+                    pickle.load(f)
+            X_train = np.array(X_train)
+            y_train = np.array(y_train)
+            X_test = np.array(X_test)
+            y_test = np.array(y_test)
+            print(X_train.shape)
+            print(y_train.shape)
+            print(X_test.shape)
+            print(y_test.shape)
         except FileNotFoundError:
             print("Didn't find the .pkl file of the features. Producing it",
                   "now, under the pickle path folder")
-            data = super()._bring_data_to_format()
-            data = data[:, :self.cutoff_point]
-            features = self._produce_features(data)
+            # returns data in format (N, FC, D)
+            data = self.prediction_set.cutoff_for_prediction()
+            X_train, y_train, X_test, y_test = \
+                self._stack_variables_and_resample(data, labels)
+            X_train = self._split_variables(X_train)
+            X_test = self._split_variables(X_test)
+            X_train = self._produce_features(X_train)
+            X_test = self._produce_features(X_test)
             with open(str(self.pickle_path), 'wb') as f:
-                pickle.dump([features, self.feature_keys], f)
+                pickle.dump([X_train, y_train, X_test, y_test,
+                             self.feature_keys], f)
 
-        X_train, X_test, y_train, y_test = train_test_split(
-                        features, labels, test_size=0.2,
-                        stratify=labels[:, 0], random_state=42)
         return X_train, X_test, y_train, y_test
 
-    def train(self, X_train, y_train):
-        prediction_models = []
-        for i, interval in enumerate(self.prediction_interval):
-            prediction_models.append(super().train(X_train, y_train[:, i]))
-        return prediction_models
+    def tune_classifier(self, X_train, y_train):
+        """Finetunes the XGBoostClassifier for better accuracy
+        Parameters
+        ----------
+            X_train: numpy array
+                A numpy array of shape [num_data x num_features] the training
+                data
+            X_test: numpy array
+                A numpy array of shape [num_data x num_features] the test data
+            y_train: numpy array
+                A numpy array of shape [num_data x 1] the training labels
 
-    def test(self, prediction_models, X_test, y_test):
-        for i, interval in enumerate(self.prediction_interval):
-            y_pred = prediction_models[i].predict(X_test)
-            auc = roc_auc_score(y_test[:, i], y_pred)
-            f1 = f1_score(y_test[:, i], y_pred, average='macro')
-            print(("{0} days in advance, \t AUROC: {1:.2f}, \t F1:"
-                   "{2:.2f}").format(interval, auc, f1))
+        """
+        tuned_parameters = {
+                'max_depth': [3, 5, 10],
+                'n_estimators': [500, 1000, 2000],
+                'reg_alpha': [0, 0.1, 5, 10, 100],
+                'reg_lambda': [0, 0.1, 5, 10, 100]
+                }
+        clf = GridSearchCV(XGBClassifier(), tuned_parameters, cv=5,
+                           scoring='roc_auc')
+        clf.fit(X_train, y_train)
+        print("Best parameters set found on development set:")
+        print()
+        print(clf.best_params_)
+        print()
+        print("Grid scores on development set:")
+        print()
+        means = clf.cv_results_['mean_test_score']
+        stds = clf.cv_results_['std_test_score']
+        for mean, std, params in zip(means, stds, clf.cv_results_['params']):
+            print("%0.3f (+/-%0.03f) for %r"
+                  % (mean, std * 2, params))
+        print()
+
+    def train(self, X_train, y_train):
+        """Trains an XGBoostClassifier by getting the training data from other
+        parts of the class. Also prints the three most important features for
+        the classification and plots them as a bar plot.
+
+        Parameters
+        ----------
+            X_train: numpy array
+                The training split of the data features
+            y_train: numpy array
+                The training split of the data labels
+        Returns
+        -------
+            model: XGBClassifier class
+                The trained model
+        """
+
+        model = super().train(X_train, y_train)
+        return model
+
+    def test(self, model, X_test, y_test):
+        """Returns the AUROC and F1 score of the model on the test set.
+        Parameters
+        ----------
+            X_test: numpy array
+                The test split of the data features
+            y_test: numpy array
+                The test split of the data labels
+
+        Returns
+        -------
+            auroc: float
+                The AUROC score of the model
+            f1: float
+                The F1 score of the model
+        """
+
+        y_pred = model.predict(X_test)
+        auc = roc_auc_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average='macro')
+        return auc, f1
 
 
 if __name__ == "__main__":
@@ -102,7 +257,7 @@ if __name__ == "__main__":
             help="Choose the max prediction interval",
             type=int,
             action="store",
-            default=30
+            default=5
             )
     args = parser.parse_args()
     pickle_path = (args.output_path + "features" + str(args.cutoff_point) +
@@ -112,8 +267,10 @@ if __name__ == "__main__":
             path=args.input_path,
             pickle_path=pickle_path,
             cutoff_point=args.cutoff_point,
-            max_prediction=args.prediction_interval
+            prediction_interval=args.prediction_interval
             )
     X_train, X_test, y_train, y_test = test.preprocess_as_prediction()
     model = test.train(X_train, y_train)
-    test.test(model, X_test, y_test)
+    auc, f1 = test.test(model, X_test, y_test)
+    print(("{0} days in advance, \t AUROC: {1:.2f}, \t F1:"
+           "{2:.2f}").format(args.prediction_interval, auc, f1))

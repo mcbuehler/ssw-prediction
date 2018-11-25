@@ -46,9 +46,7 @@ class DataManager:
         :param variables:
         :return: np.array
         """
-        # TODO: Check that this function is working properly
         data = np.array(list(self.get_data_for_variable(v) for v in variables))
-        # Feature Count, Number of samples, Number of Days
         data = np.swapaxes(data, 0, 1)
         return data
 

@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 import pandas as pd
 import argparse
-from data_manager import DataManager
+from core.data_manager import DataManager
 from tsfresh import extract_features
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -21,7 +21,7 @@ class ManualAndXGBoost:
         The initial features used from the array of features that we have
     """
 
-    features = ['wind_60', 'wind_65', 'temp_60_90']
+    variables = ['wind_60', 'wind_65', 'temp_60_90']
 
     def __init__(self, definition, path, pickle_path):
         """The constructor of the ManualAndXgboost class
@@ -59,22 +59,22 @@ class ManualAndXGBoost:
 
     def _bring_data_to_format(self):
         """Gets the corresponding initial variables using the data manager class
-        and returns a data numpy array that the features in format
-        [num_data*num_features, len_winter]. The trick here is that
-        consecutive lines are not of the same feature space but from different
-        features
+        and returns a data numpy array that the variables are in format
+        [num_data*num_variables, len_winter]. The trick here is that
+        consecutive lines are not of the same variable space but from different
+        variable
         Returns
         -------
             data: numpy array
                 A numpy array of format [num_data*num_features, len_winter]
             """
         temp_data = []
-        for feature in self.features:
+        for variable in self.variables:
             temp_data.append(self.data_manager.get_data_for_variable(
-                             feature))
+                             variable))
 
         temp_data = np.array(temp_data)
-        num_variables = len(self.features)
+        num_variables = len(self.variables)
         num_data = temp_data[0].shape[0]
         data = []
         # The tricky part here is that now we have a 3D tensor for the three
@@ -93,10 +93,10 @@ class ManualAndXGBoost:
 
     def _produce_features(self, data):
         """
-        Gets the data in the format [num_data*num_features, len_winter] and by
+        Gets the data in the format [num_data*num_variables, len_winter] and by
         using tsfresh it produces a matrix [num_data,
-        tsfresh_features*num_variables]. It also creates a list of
-        [tsfresh_features*num_variables] to have the correspondence between the
+        tsfresh_features*num_features]. It also creates a list of
+        [tsfresh_features*num_features] to have the correspondence between the
         initial variables and the features produced and saves that in a class
         variable.
 
@@ -127,11 +127,11 @@ class ManualAndXGBoost:
                 flag = False
                 self.feature_keys = []
                 keys_features_length = len(temp_feature_keys)
-                features_length = len(self.features)
-                for i in range(keys_features_length*features_length):
+                variables_length = len(self.variables)
+                for i in range(keys_features_length*variables_length):
                     quotient = int(i / keys_features_length)
                     self.feature_keys.append(
-                            self.features[quotient] + "_" +
+                            self.variables[quotient] + "_" +
                             temp_feature_keys[
                                 i-quotient*keys_features_length]
                             )
@@ -141,8 +141,9 @@ class ManualAndXGBoost:
         # bring the features from format [num_data*num_features, len_winter] to
         # [num_data, num_features*len_winter]
         new_features = []
+        length = len(self.variables)
         for i, feature in enumerate(features):
-            if i % 3 == 2:
+            if i % length == 2:
                 new_features.append(np.concatenate((features[i],
                                     features[i-1], features[i-2]),
                                     axis=0))
@@ -162,14 +163,16 @@ class ManualAndXGBoost:
         Returns
         -------
             X_train: numpy array
-                A numpy array of shape [num_data x num_features] the training
-                data
+                A numpy array of shape [num_data x num_features] that contains
+                the training data
             X_test: numpy array
-                A numpy array of shape [num_data x num_features] the test data
+                A numpy array of shape [num_data x num_features] that contains
+                the test data
             y_train: numpy array
-                A numpy array of shape [num_data x 1] the training labels
+                A numpy array of shape [num_data] that contains the training
+                labels
             y_test: numpy array
-                A numpy array of shape [num_data x 1] the test labels
+                A numpy array of shape [num_data] that contains the test labels
         """
         labels = self.__get_labels()
         try:
