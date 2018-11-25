@@ -212,10 +212,10 @@ class RealDataPointFactory:
 
 if __name__ == '__main__':
     preprocess = PreprocessorReal(
-        "../../data/u-jra55-125-daymean-1959.nc",
-        "../../data/u-jra55-125-daymean-1960.nc",
-        "../../data/t-jra55-125-daymean-1959.nc",
-        "../../data/t-jra55-125-daymean-1960.nc")
+        "../../data/u/u-jra55-125-daymean-1959.nc",
+        "../../data/u/u-jra55-125-daymean-1960.nc",
+        "../../data/t/t-jra55-125-daymean-1959.nc",
+        "../../data/t/t-jra55-125-daymean-1960.nc")
 
     wind_60 = preprocess.get_uwind(60)
     wind_65 = preprocess.get_uwind(65)
