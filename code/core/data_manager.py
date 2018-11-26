@@ -47,7 +47,6 @@ class DataManager:
         :return: np.array
         """
         data = np.array(list(self.get_data_for_variable(v) for v in variables))
-        # Fix by Orhun
         data = np.swapaxes(data, 0, 1)
         return data
 
