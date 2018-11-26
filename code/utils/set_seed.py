@@ -30,4 +30,4 @@ class SetSeed:
 
 
 if __name__ == '__main__':
-    set_seed = SetSeed().set_seed()
+    SetSeed().set_seed()
