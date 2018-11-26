@@ -54,10 +54,14 @@ def process_single_year(input_dir, year):
     p is a Datapoint object which contains winterly timeseries for each
     variable of interest
     """
-    first_winter_u_name = input_dir + FILE_FORMAT.format("u", "u", year)
-    second_winter_u_name = input_dir + FILE_FORMAT.format("u", "u", year + 1)
-    first_winter_t_name = input_dir + FILE_FORMAT.format("t", "t", year)
-    second_winter_t_name = input_dir + FILE_FORMAT.format("t", "t", year + 1)
+    first_winter_u_name = os.path.join(input_dir,
+                                       FILE_FORMAT.format("u", "u", year))
+    second_winter_u_name = os.path.join(input_dir,
+                                        FILE_FORMAT.format("u", "u", year + 1))
+    first_winter_t_name = os.path.join(input_dir,
+                                       FILE_FORMAT.format("t", "t", year))
+    second_winter_t_name = os.path.join(input_dir,
+                                        FILE_FORMAT.format("t", "t", year + 1))
 
     for path in [first_winter_t_name, second_winter_t_name,
                  first_winter_u_name, second_winter_u_name]:
@@ -107,7 +111,7 @@ def process_years(input_dir, output_dir):
 
 def run():
     """
-    Function to run preprocessing. It loads files from the directory provdied
+    Function to run preprocessing. It loads files from the directory provided
     with the environment variable DSLAB_CLIMATE_BASE_INPUT_REAL and outputs
     preprocesses h5 file to DSLAB_CLIMATE_BASE_OUTPUT_REAL.
     """
