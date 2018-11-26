@@ -5,8 +5,9 @@ from netCDF4 import Dataset
 
 class PreprocessorReal:
     """
-    A class to preprocess, takes two years as real data from JRA-55 data
-    and returns the variables of interest for a whole winter.
+    A class to preprocess the real data from the JRA-55 dataset. It takes two
+    years from the dataset and returns the variables of interest for a whole
+    winter.
     """
 
     # Pressure level of interest
@@ -19,22 +20,22 @@ class PreprocessorReal:
 
     # A cutoff which specifies how many days should we get from the beginning
     # of the second year.
-    END_DAY = 120
+    END_DAY = 118
 
     def __init__(self, first_winter_u_name, second_winter_u_name,
                  first_winter_t_name, second_winter_t_name):
         """
-        Initializer for PreprocessorReal class.
-        Since each input feature is located at different files, we need to
-        specify a different file name for each feature and year.
+        Initializer for PreprocessorReal class. As we have separate files for
+        each input feature, we need to specify a different file name for each
+        feature and year.
 
-        :param first_winter_u_name: The path of nc of the
+        :param first_winter_u_name: The path of the .nc file of the
         first winter's wind (u component)
-        :param second_winter_u_name: The path of nc file of the
+        :param second_winter_u_name: The path of the .nc file of the
         second winter's wind (u component)
-        :param first_winter_t_name: The path of nc file of the
+        :param first_winter_t_name: The path of the .nc file of the
         first winter's temperature
-        :param second_winter_t_name: The path of nc file of the
+        :param second_winter_t_name: The path of the .nc file of the
         second winter's temperature
         """
 
@@ -56,7 +57,7 @@ class PreprocessorReal:
 
         :param lat: Latitude of interest
         :return: Time series for u wind at the latitude of interest with
-        shape (212,)
+        shape (210,)
         """
 
         winter = self.get_useful_part("u")
@@ -75,7 +76,7 @@ class PreprocessorReal:
         :param lat_min: Latitude of interest (south of lat_min)
         :param lat_max: Latitude of interest (north of lat_max)
         :return: Time series for temperature between latitudes of interest
-        (cosine averaged) with shape (212,)
+        (cosine averaged) with shape (210,)
         """
         winter = self.get_useful_part("t")
 
@@ -124,7 +125,7 @@ class PreprocessorReal:
         the pressure in the self.USEFUL_PRES level is extracted.
 
         :param variable: Variable of interest (example: "u", "t")
-        :return: Winterly time series (212, 145) corresponding to
+        :return: Winterly time series (210, 145) corresponding to
         (days, latitudes).
         """
 
@@ -137,7 +138,8 @@ class PreprocessorReal:
 
         # Get proper pressure level index
         ind, _ = self.get_dimension_index("lev", self.USEFUL_PRES)
-        # Filter the winter such that it only includes
+
+        # Filter the winter such that it only includes useful pressure level.
         winter = np.take(winter, ind, axis=1)
 
         # Average through longitudes
@@ -151,15 +153,15 @@ class PreprocessorReal:
         Gets the necessary data and produces a data point based on a Data class
 
         :param wind_60: An array that contains the wind at 60 latitude for
-        every day with dimensions (212, 1).
+        every day with dimensions (210, 1).
         :param wind_65: An array that contains the wind at 65 latitude for
-        every day with dimensions (212, 1).
+        every day with dimensions (210, 1).
         :param temp_60_70: An array that contains the temperature cosine
-        averaged between 60-70 latitude for every day with dimensions (212, 1)
+        averaged between 60-70 latitude for every day with dimensions (210, 1)
         :param temp_80_90: An array that contains the temperature cosine
-        averaged between 80-90 latitude for every day with dimensions (212, 1)
+        averaged between 80-90 latitude for every day with dimensions (210, 1)
         :param temp_60_90: An array that contains the temperature cosine
-        averaged between 60-90 latitude for every day with dimensions (212, 1)
+        averaged between 60-90 latitude for every day with dimensions (210, 1)
         :return: A Datapoint class instance with attributes 'temp_60_70',
                 'temp_60_80', 'temp_60_90', 'wind_60', 'wind_65'.
         """
@@ -184,13 +186,13 @@ class RealDataPointFactory:
         """
         Factory method to create data points from nc files
 
-        :param first_winter_u_name: The path of nc of the
+        :param first_winter_u_name: The path of the .nc file of the
         first winter's wind (u component)
-        :param second_winter_u_name: The path of nc of the
+        :param second_winter_u_name: The path of the .nc file of the
         second winter's wind (u component)
-        :param first_winter_t_name: The path of nc file of the
+        :param first_winter_t_name: The path of the .nc file of the
         first winter's temperature
-        :param second_winter_t_name: The path of nc file of the
+        :param second_winter_t_name: The path of the .nc file of the
         second winter's temperature
         :return: Datapoint
         """
