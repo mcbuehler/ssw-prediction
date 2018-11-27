@@ -1,5 +1,4 @@
 import argparse
-import mummify
 # import sys
 import numpy as np
 from sklearn.metrics import f1_score, roc_auc_score
@@ -262,4 +261,3 @@ if __name__ == "__main__":
                      args.cutoff_point, args.features_interval,
                      args.prediction_interval, auc, f1)
     print(output_string)
-    mummify.log(output_string)
