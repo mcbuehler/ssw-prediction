@@ -1,7 +1,6 @@
 appnope==0.1.0
 backcall==0.1.0
 bleach==3.0.2
-certifi==2018.10.15
 cftime==1.0.1
 chardet==3.0.4
 Click==7.0
@@ -37,7 +36,6 @@ matplotlib==3.0.1
 mccabe==0.6.1
 mistune==0.8.4
 msgpack==0.5.6
-mummify==0.3.3
 nbconvert==5.4.0
 nbformat==4.4.0
 netCDF4==1.4.1
@@ -61,7 +59,6 @@ python-dateutil==2.7.5
 pytz==2018.6
 PyYAML==3.13
 pyzmq==17.1.2
-qtconsole==4.4.2
 regex==2018.11.2
 requests==2.20.0
 scikit-learn==0.20.0
