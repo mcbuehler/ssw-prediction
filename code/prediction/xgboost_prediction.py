@@ -1,12 +1,12 @@
 import argparse
-import pickle
 # import sys
 import numpy as np
 from sklearn.metrics import f1_score, roc_auc_score
 from xgboost import XGBClassifier
 from classification.xgboost_simple import ManualAndXGBoost
-from prediction_set import PredictionSet
+from prediction_set import FixedWindowPredictionSet
 from sklearn.model_selection import train_test_split, GridSearchCV
+from utils.set_seed import SetSeed
 from imblearn.over_sampling import ADASYN
 
 
@@ -18,8 +18,8 @@ class XGBoostPredict(ManualAndXGBoost):
     create the labels and the train/test set.
     """
 
-    def __init__(self, definition, path, pickle_path, cutoff_point,
-                 prediction_interval):
+    def __init__(self, definition, path, cutoff_point,
+                 features_interval, prediction_interval):
         """The constructor of the XGBoostPredict class
 
         Parameters
@@ -28,19 +28,21 @@ class XGBoostPredict(ManualAndXGBoost):
                 the definition that you want to do classification for
             path: string
                 the path where the input data are
-            pickle_path: string
-                the path where you will store the pickle file that contains the
-                labels
             cutoff_point: int
                 the maximum cutoff point until where your data will expand
             prediction_interval: int
                 the interval where you will do predictions in
+            features_interval: int
+                the interval in the past where you will produce features
         """
 
         self.prediction_interval = prediction_interval
-        self.pickle_path = pickle_path
-        self.prediction_set = PredictionSet(definition, path, cutoff_point,
-                                            prediction_interval)
+        self.prediction_set = FixedWindowPredictionSet(definition, path,
+                                                       cutoff_point,
+                                                       prediction_interval,
+                                                       features_interval)
+        # set the seed for all the libraries
+        SetSeed().set_seed()
 
     def _stack_variables_and_resample(self, temp_data, labels):
         """Brings data to the right format for features engineering and training
@@ -69,9 +71,8 @@ class XGBoostPredict(ManualAndXGBoost):
 
         X_train, X_test, y_train, y_test = train_test_split(
                         data, labels, test_size=0.2,
-                        stratify=labels, random_state=42)
-        X_train, y_train = ADASYN(random_state=42).fit_resample(X_train,
-                                                                y_train)
+                        stratify=labels)
+        X_train, y_train = ADASYN().fit_resample(X_train, y_train)
 
         return X_train, y_train, X_test, y_test
 
@@ -107,36 +108,19 @@ class XGBoostPredict(ManualAndXGBoost):
             y_test: numpy array
                 A numpy array of shape [num_data] that contains the test labels
         """
-        labels = np.ravel(self.prediction_set.get_labels_for_prediction())
+        labels = np.ravel(self.prediction_set.get_labels())
         # get distribution of the labels
         # print(np.unique(labels[:], return_counts=True))
         # sys.exit(0)
-        try:
-            with open(str(self.pickle_path), 'rb') as f:
-                X_train, y_train, X_test, y_test, self.feature_keys = \
-                    pickle.load(f)
-            X_train = np.array(X_train)
-            y_train = np.array(y_train)
-            X_test = np.array(X_test)
-            y_test = np.array(y_test)
-            print(X_train.shape)
-            print(y_train.shape)
-            print(X_test.shape)
-            print(y_test.shape)
-        except FileNotFoundError:
-            print("Didn't find the .pkl file of the features. Producing it",
-                  "now, under the pickle path folder")
-            # returns data in format (N, FC, D)
-            data = self.prediction_set.cutoff_for_prediction()
-            X_train, y_train, X_test, y_test = \
-                self._stack_variables_and_resample(data, labels)
-            X_train = self._split_variables(X_train)
-            X_test = self._split_variables(X_test)
-            X_train = self._produce_features(X_train)
-            X_test = self._produce_features(X_test)
-            with open(str(self.pickle_path), 'wb') as f:
-                pickle.dump([X_train, y_train, X_test, y_test,
-                             self.feature_keys], f)
+
+        # returns data in format (N, FC, D)
+        data = self.prediction_set.get_features()
+        X_train, y_train, X_test, y_test = \
+            self._stack_variables_and_resample(data, labels)
+        X_train = self._split_variables(X_train)
+        X_test = self._split_variables(X_test)
+        X_train = self._produce_features(X_train)
+        X_test = self._produce_features(X_test)
 
         return X_train, X_test, y_train, y_test
 
@@ -192,7 +176,8 @@ class XGBoostPredict(ManualAndXGBoost):
                 The trained model
         """
 
-        model = super().train(X_train, y_train)
+        model = XGBClassifier(n_estimators=1000, max_depth=5, reg_alpha=0.1)
+        model.fit(X_train, y_train)
         return model
 
     def test(self, model, X_test, y_test):
@@ -237,19 +222,20 @@ if __name__ == "__main__":
             default="data/data_labeled.h5"
             )
     parser.add_argument(
-            "-o",
-            "--output_path",
-            help="Choose the output path of the pickle file",
-            action="store",
-            default="data/"
-            )
-    parser.add_argument(
             "-cp",
             "--cutoff_point",
             help="Choose the cutoff point of the time series",
             type=int,
             action="store",
-            default=60
+            default=90
+            )
+    parser.add_argument(
+            "-fi",
+            "--features_interval",
+            help="Choose the interval where you will calculate features",
+            type=int,
+            action="store",
+            default=30
             )
     parser.add_argument(
             "-pi",
@@ -260,17 +246,17 @@ if __name__ == "__main__":
             default=5
             )
     args = parser.parse_args()
-    pickle_path = (args.output_path + "features" + str(args.cutoff_point) +
-                   ".pkl")
     test = XGBoostPredict(
             definition=args.definition,
             path=args.input_path,
-            pickle_path=pickle_path,
             cutoff_point=args.cutoff_point,
+            features_interval=args.features_interval,
             prediction_interval=args.prediction_interval
             )
     X_train, X_test, y_train, y_test = test.preprocess_as_prediction()
     model = test.train(X_train, y_train)
     auc, f1 = test.test(model, X_test, y_test)
-    print(("{0} days in advance, \t AUROC: {1:.2f}, \t F1:"
-           "{2:.2f}").format(args.prediction_interval, auc, f1))
+    print(("Max cutoff: {0} days, Look in the past: {1} days, Prediction {2} ",
+           "days, \t AUROC: {1:.2f}, \t F1:{2:.2f}").format(
+            args.cutoff_point, args.features_interval,
+            args.prediction_interval, auc, f1))
