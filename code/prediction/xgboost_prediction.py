@@ -1,4 +1,5 @@
 import argparse
+import mummify
 # import sys
 import numpy as np
 from sklearn.metrics import f1_score, roc_auc_score
@@ -256,7 +257,9 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = test.preprocess_as_prediction()
     model = test.train(X_train, y_train)
     auc, f1 = test.test(model, X_test, y_test)
-    print(("Max cutoff: {0} days, Look in the past: {1} days, Prediction {2} ",
-           "days, \t AUROC: {1:.2f}, \t F1:{2:.2f}").format(
-            args.cutoff_point, args.features_interval,
-            args.prediction_interval, auc, f1))
+    output_string = ("Max cutoff: {0} days, Look in the past: {1} days",
+                     "Prediction {2} days, AUROC: {3:.2f}, F1:{4:.2f}").format(
+                     args.cutoff_point, args.features_interval,
+                     args.prediction_interval, auc, f1)
+    print(output_string)
+    mummify.log(output_string)
