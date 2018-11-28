@@ -13,12 +13,10 @@ import numpy as np
 import matplotlib.pyplot as ply
 from prediction.base_model import PredictionBaseModel
 
-
 np.random.seed(42)
 
 
 class HistogramTransformer(BaseEstimator, TransformerMixin):
-
     def __init__(self, n_bins=100):
         """
         Transformer that produces histogram features
@@ -169,25 +167,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='A simple prediction \
             scheme using histogram features and RandomForest')
     parser.add_argument(
-            "-d",
-            "--definition",
-            choices=(DK.CP07, DK.UT, DK.U65),
-            help="Choose the definition that you want to run classification",
-            action="store",
-            default=DK.CP07
-           )
+        "-d",
+        "--definition",
+        choices=(DK.CP07, DK.UT, DK.U65),
+        help="Choose the definition that you want to run classification",
+        action="store",
+        default=DK.CP07
+    )
     parser.add_argument(
-            "-i",
-            "--input_path",
-            help="Choose the input relative path where the data are",
-            action="store",
-            default=os.getenv("DSLAB_CLIMATE_LABELED_DATA")
-            )
+        "-i",
+        "--input_path",
+        help="Choose the input relative path where the data are",
+        action="store",
+        default=os.getenv("DSLAB_CLIMATE_LABELED_DATA")
+    )
     args = parser.parse_args()
 
     model = RandomForestPrediction(
-            definition=args.definition,
-            path=args.input_path
-            )
+        definition=args.definition,
+        path=args.input_path,
+        n_bins=100,
+        n_estimators=1000
+    )
 
-    model.evaluate(plot=False)
+    print(model.evaluate(plot=False))
