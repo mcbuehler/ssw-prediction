@@ -1,9 +1,11 @@
 import argparse
 
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
     accuracy_score
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.pipeline import Pipeline
 
 from preprocessing.dataset import DatapointKey as DK
 import os
@@ -13,6 +15,48 @@ from prediction.base_model import PredictionBaseModel
 
 
 np.random.seed(42)
+
+
+class HistogramTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self, n_bins=100):
+        """
+        Transformer that produces histogram features
+
+        Parameters
+        ----------
+            n_bins: int
+                number of bins to use in the histograms
+        """
+        self.n_bins = n_bins
+
+    def _histograms(self, data, n_bins):
+        """
+        Creates histogram features for given variables.
+        For each variable, we create a histogram with n_bins.
+
+        Parameters
+        ----------
+            data: numpy.array
+                contains the preprocessed data
+                of shape (num_data, num_variables, num_days)
+            n_bins: int
+                number of bins to use in the histograms
+
+        """
+        hist = np.apply_along_axis(
+            lambda a: np.histogram(a, bins=n_bins)[0],
+            axis=2, arr=data)
+        return hist
+
+    def transform(self, X, y=None, **fit_params):
+        histogram_features = self._histograms(X, n_bins=self.n_bins)
+        X = np.reshape(histogram_features, (histogram_features.shape[0], -1))
+        return X
+
+    def fit(self, X, y=None, **fit_params):
+        # No fitting required
+        return self
 
 
 class RandomForestPrediction(PredictionBaseModel):
@@ -42,61 +86,6 @@ class RandomForestPrediction(PredictionBaseModel):
         self.metrics = [f1_score, roc_auc_score, accuracy_score]
         self.classifier = RandomForestClassifier(n_estimators=n_estimators)
 
-        self.X = None
-        self.y = None
-
-        self._prepare()
-
-    def _histograms(self, data, n_bins, hist_range=None):
-        """
-        Creates histogram features for given variables.
-        For each variable, we create a histogram with n_bins.
-
-        Parameters
-        ----------
-            data: numpy.array
-                contains the preprocessed data
-                of shape (num_data, num_variables, num_days)
-            n_bins: int
-                number of bins to use in the histograms
-
-        """
-        if hist_range is None:
-            # TODO: fix this not to use test data
-            hist_range = (np.min(data), np.max(data))
-        hist = np.apply_along_axis(
-            lambda a: np.histogram(a, bins=n_bins, range=hist_range)[0],
-            axis=2, arr=data)
-        return hist
-
-    def _produce_features(self, data):
-        """
-        Gets the data in the format [num_data, num_variables, num_days]
-        and produces the design matrix X.
-
-        Returns
-        -------
-            X: np.array
-                A numpy array of size
-                [num_data, num_features]
-        """
-        histogram_features = self._histograms(data, n_bins=self.n_bins)
-        X = np.reshape(histogram_features, (histogram_features.shape[0], -1))
-        return X
-
-    def _produce_labels(self, labels):
-        """
-        Gets the data in the format [num_data, num_labels] and outputs
-        the ready-to-use labels for prediction.
-
-        Returns
-        -------
-            labels: np.array
-                A numpy array of size
-                [num_data,]
-        """
-        return labels.ravel()
-
     def evaluate(self, plot=False):
         """
         Trains the model in a 5-fold cross validation and returns a mean
@@ -112,20 +101,38 @@ class RandomForestPrediction(PredictionBaseModel):
             mean_scores: list of length len(self.metrics),
             std_scores: list of length len(self.metrics)
         """
-        assert self.ready
+        # We create a pipeline in order to apply the same independent
+        # preprocessing steps to all folds in the cross-validation
+        feature_extraction = HistogramTransformer(n_bins=self.n_bins)
+        steps = [
+            ('feature_extraction', feature_extraction),
+            ('model', self.classifier)
+        ]
+        pipeline = Pipeline(steps)
 
+        # Get the raw data for the features
+        data_features = self.prediction_set.get_features()
+        # Bring labels in correct format
+        labels = self.prediction_set.get_labels().ravel()
+
+        # We have an unbalanced dataset, so we stratify
+        cv = StratifiedKFold(self.cv_folds, shuffle=True)
+
+        # Produce scores for all scoring metrics
         scores = [
-            cross_val_score(self.classifier, self.X, self.y, cv=5,
+            cross_val_score(pipeline, data_features, labels, cv=cv,
                             scoring=make_scorer(metric))
             for metric in self.metrics
         ]
 
+        # We only want to keep mean and std for each metric
         scores_means = [np.mean(score) for score in scores]
-        scores_2std = [2 * np.std(score) for score in scores]
+        scores_std = [np.std(score) for score in scores]
 
         if plot:
-            self.plot(scores_means, scores_2std)
-        return scores_means, scores_2std
+            self.plot(scores_means, scores_std)
+
+        return scores_means, scores_std
 
     def plot(self, scores_mean, scores_std):
         """
@@ -182,4 +189,5 @@ if __name__ == '__main__':
             definition=args.definition,
             path=args.input_path
             )
-    model.evaluate(plot=True)
+
+    model.evaluate(plot=False)

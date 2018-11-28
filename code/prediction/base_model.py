@@ -9,7 +9,8 @@ class PredictionBaseModel:
     """Inherit from this class to create your own PredictionModels.
     """
 
-    def __init__(self, definition, path):
+    def __init__(self, definition, path, cutoff_point=90,
+                 prediction_interval=30, features_interval=30, cv_folds=5):
         """
         Parameters
         ----------
@@ -22,18 +23,15 @@ class PredictionBaseModel:
         self.path = path
         self.definition = definition
 
-        self.cutoff_point = 100
-        self.prediction_interval = 50
-        self.features_interval = 30
+        self.cv_folds = cv_folds
 
-        self.X = None
-        self.y = None
+        self.cutoff_point = cutoff_point
+        self.prediction_interval = prediction_interval
+        self.features_interval = features_interval
 
-        self.ready = False
+        self.prediction_set = self._get_prediction_set()
 
-        self._prepare()
-
-    def _prepare(self):
+    def _get_prediction_set(self):
         """
         Runs all the computations to get this instance ready for evaluation.
         For example, you can initialise self.X and self.y here.
@@ -45,38 +43,7 @@ class PredictionBaseModel:
             prediction_interval=self.prediction_interval,
             feature_interval=self.features_interval
         )
-        features = prediction_set.get_features()
-        labels = prediction_set.get_labels()
-        self.X = self._produce_features(features)
-        self.y = self._produce_labels(labels)
-
-        self.ready = True
-
-    def _produce_features(self, data):
-        """
-        Gets the data in the format [num_data, num_variables, len_winter]
-        and produces a matrix [num_data,num_features].
-
-        Returns
-        -------
-            features: np.array
-                A numpy array of size
-                [num_data, num_features]
-        """
-        return NotImplementedError("Implement this method in a subclass")
-
-    def _produce_labels(self, labels):
-        """
-        Gets the data in the format [num_data, num_labels] and outputs
-        the ready-to-use labels for prediction.
-
-        Returns
-        -------
-            labels: np.array
-                A numpy array of size
-                [num_data,]
-        """
-        return NotImplementedError("Implement this method in a subclass")
+        return prediction_set
 
     def evaluate(self, plot=False):
         """
