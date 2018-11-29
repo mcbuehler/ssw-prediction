@@ -251,4 +251,5 @@ if __name__ == '__main__':
 
         mean_scores, _ = model.evaluate(plot=False)
         print("n_bins: {} --> {:.4f}, {:.4f}, {:.4f}".format(n_bins,
-                                                             *mean_scores))
+                                                             *mean_scores)
+              )
