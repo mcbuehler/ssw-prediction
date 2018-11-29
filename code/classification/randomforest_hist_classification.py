@@ -207,17 +207,17 @@ class RandomForestClassification():
             standard deviations for each metric
         """
         # Make sure to have the correct order for classifier_txt
-        classifiers_txt = ["F1", "ROCAUC", "Accuracy"]
+        x_txt = ["F1", "ROCAUC", "Accuracy"]
 
         ply.figure()
-        ply.bar(classifiers_txt, scores_mean, yerr=scores_std, align='center',
+        ply.bar(x_txt, scores_mean, yerr=scores_std, align='center',
                 alpha=0.5, ecolor='black', capsize=10)
 
         ply.title(
             "Results {}".format(self.__class__.__name__))
 
-        # ply.savefig(os.path.join(path_plots, "{}.png".format(variable)))
         ply.ylim(0, 1)
+        ply.show()
 
 
 if __name__ == '__main__':
