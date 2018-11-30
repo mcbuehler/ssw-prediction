@@ -1,5 +1,7 @@
 import os
 import sys
+import subprocess
+import time
 from enums import Task, Metric, Classifier
 from preprocessing.dataset import DatapointKey
 
@@ -55,7 +57,12 @@ class Output:
     def write_output(self):
         """Writes the output of the experiment into a CSV file"""
         scores = ','.join(str(e) for e in self.scores)
-        output_string = "{},{},{},{},{},{},{},{}\n".format(
+        ts = time.ctime()
+        label = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
+        output_string = "{},{},{},{},{},{},{},{},{},{}\n".format(
+                ts,
+                label,
                 self.classifier,
                 self.task,
                 self.definition,
