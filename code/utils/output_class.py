@@ -10,7 +10,8 @@ class Output:
     tasks = ['prediction', 'classification']
 
     def __init__(self, classifier, task, definition, cutoff_point,
-                 feature_interval, prediction_interval, metric, scores):
+                 feature_interval, prediction_interval, metric, scores,
+                 path=None):
         """Constructor of the output class
 
         :classifier: The classifier that has been used for the task
@@ -39,15 +40,18 @@ class Output:
         self.prediction_interval = prediction_interval
         self.metric = metric
         self.scores = scores
+        if path is None:
+            path = os.getenv("DSLAB_RESULT_FILE")
+            if path is None:
+                print("Your output path is not set correctly. Please set the "
+                      "DSLAB_RESULT_FILE env variable or the path variable "
+                      "to the 'results/results.csv' file in the repo")
+                sys.exit(1)
+        else:
+            self.path = path
 
     def write_output(self):
         """Writes the output of the experiment into a CSV file"""
-        path_result_file = os.getenv("DSLAB_RESULT_FILE")
-        if path_result_file is None:
-            print("DSLAB_RESULT_FILE env variable is not set! Please set it "
-                  "to the 'results/results.csv' file in the repo")
-            sys.exit(1)
-
         scores = ','.join(str(e) for e in self.scores)
         output_string = "{},{},{},{},{},{},{},{}".format(
                 self.classifier,
@@ -59,7 +63,7 @@ class Output:
                 self.metric,
                 scores
                 )
-        with open(path_result_file, 'a') as csv_file:
+        with open(self.path, 'a') as csv_file:
             csv_file.write(output_string)
 
 
