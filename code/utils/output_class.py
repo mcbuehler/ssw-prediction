@@ -47,13 +47,15 @@ class Output:
                       "DSLAB_RESULT_FILE env variable or the path variable "
                       "to the 'results/results.csv' file in the repo")
                 sys.exit(1)
+            else:
+                self.path = path
         else:
             self.path = path
 
     def write_output(self):
         """Writes the output of the experiment into a CSV file"""
         scores = ','.join(str(e) for e in self.scores)
-        output_string = "{},{},{},{},{},{},{},{}".format(
+        output_string = "{},{},{},{},{},{},{},{}\n".format(
                 self.classifier,
                 self.task,
                 self.definition,
