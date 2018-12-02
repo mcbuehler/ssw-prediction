@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 from matplotlib import pyplot
 from utils.set_seed import SetSeed
 from utils.output_class import Output
-from utils.enums import Task, Metric, Classifier, DataType
+from utils.enums import Task, Classifier, DataType
 
 
 class ManualAndXGBoost:
@@ -196,7 +196,7 @@ class ManualAndXGBoost:
         model.fit(X_train, y_train)
         return model
 
-    def evaluate_simulated(self, X, y):
+    def evaluate_simulated(self, X, y, metric):
         """Runs a 5-CV on the data and returns the scores as a python list
         Parameters
         ----------
@@ -214,7 +214,7 @@ class ManualAndXGBoost:
                               reg_alpha=0.1)
         # tip: XGBClassifier inherits from sklearn's ClassifierMixin so the
         # following line initializes directly a StratifiedKFold
-        scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+        scores = cross_val_score(model, X, y, cv=5, scoring=metric)
         return scores
 
     def plot(self, model):
@@ -308,8 +308,16 @@ if __name__ == '__main__':
         if args.plot:
             test.plot(model)
     else:
-        scores = test.evaluate_simulated(features, labels)
-        results = Output(Classifier.xgboost, Task.classification,
-                         DataType.simulated, args.definition, '-', '-', '-',
-                         Metric.accuracy, scores)
-        results.write_output()
+        for metric in ['accuracy', 'f1', 'auroc']:
+            if metric == 'f1':
+                scores = test.evaluate_simulated(features, labels,
+                                                 'f1_macro')
+            elif metric == 'auroc':
+                scores = test.evaluate_simulated(features, labels, 'roc_auc')
+            else:
+                scores = test.evaluate_simulated(features, labels, metric)
+            results = Output(Classifier.xgboost, Task.classification,
+                             DataType.simulated, args.definition,
+                             '-', '-', '-',
+                             metric, scores)
+            results.write_output()
