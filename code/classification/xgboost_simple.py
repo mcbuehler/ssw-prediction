@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 from matplotlib import pyplot
 from utils.set_seed import SetSeed
 from utils.output_class import Output
-from utils.enums import Task, Metric, Classifier
+from utils.enums import Task, Metric, Classifier, DataType
 
 
 class ManualAndXGBoost:
@@ -310,6 +310,6 @@ if __name__ == '__main__':
     else:
         scores = test.evaluate_simulated(features, labels)
         results = Output(Classifier.xgboost, Task.classification,
-                         args.definition, '-', '-', '-', Metric.accuracy,
-                         scores)
+                         DataType.simulated, args.definition, '-', '-', '-',
+                         Metric.accuracy, scores)
         results.write_output()
