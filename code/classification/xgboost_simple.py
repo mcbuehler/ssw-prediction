@@ -1,13 +1,15 @@
 import numpy as np
-import pickle
 import pandas as pd
 import argparse
 from core.data_manager import DataManager
 from tsfresh import extract_features
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
 from matplotlib import pyplot
+from utils.set_seed import SetSeed
+from utils.output_class import Output
+from utils.enums import Task, Metric, Classifier
 
 
 class ManualAndXGBoost:
@@ -23,7 +25,7 @@ class ManualAndXGBoost:
 
     variables = ['wind_60', 'wind_65', 'temp_60_90']
 
-    def __init__(self, definition, path, pickle_path):
+    def __init__(self, definition, path):
         """The constructor of the ManualAndXgboost class
 
         Parameters
@@ -32,14 +34,11 @@ class ManualAndXGBoost:
                 the definition that you want to do classification for
             path: string
                 the path where the input data are
-            pickle_path: string
-                the path where you will store the pickle file that contains the
-                labels
         """
         self.definition = definition
         self.path = path
-        self.pickle_path = pickle_path
         self.data_manager = DataManager(self.path)
+        SetSeed().set_seed()
 
     def __get_labels(self):
         """Returns the binary labels as a numpy array for the corresponding
@@ -175,23 +174,10 @@ class ManualAndXGBoost:
                 A numpy array of shape [num_data] that contains the test labels
         """
         labels = self.__get_labels()
-        try:
-            with open(str(self.pickle_path), 'rb') as f:
-                features, self.feature_keys = pickle.load(f)
-            features = np.array(features)
-        except FileNotFoundError:
-            print("Didn't find the .pkl file of the features. Producing it",
-                  "now, under the pickle path folder")
+        data = self._bring_data_to_format()
+        features = self._produce_features(data)
 
-            data = self._bring_data_to_format()
-            features = self._produce_features(data)
-            with open(str(self.pickle_path), 'wb') as f:
-                pickle.dump([features, self.feature_keys], f)
-
-        X_train, X_test, y_train, y_test = train_test_split(
-                        features, labels, test_size=0.2,
-                        stratify=labels, random_state=42)
-        return X_train, X_test, y_train, y_test
+        return features, labels
 
     def train(self, X_train, y_train):
         """Trains an XGBoostClassifier by getting the training data from other
@@ -209,9 +195,30 @@ class ManualAndXGBoost:
             model: XGBClassifier class
                 The trained model
         """
-        model = XGBClassifier()
+        model = XGBClassifier(max_depth=5, n_estimators=1000, reg_alpha=0.1)
         model.fit(X_train, y_train)
         return model
+
+    def evaluate(self, X, y):
+        """Runs a 5-CV on the data and returns the scores as a python list
+        Parameters
+        ----------
+            X: numpy array
+                The numpy array of the data with shape [num_data,
+                dimensionality]
+            y: numpy array
+                The numpy array of the labels with shape [num_data, 1]
+        Returns
+        -------
+            scores: list
+                A python list with the scores of the CV
+        """
+        model = XGBClassifier(max_depth=5, n_estimators=1000,
+                              reg_alpha=0.1)
+        # tip: XGBClassifier inherits from sklearn's ClassifierMixin so the
+        # following line initializes directly a StratifiedKFold
+        scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+        return scores
 
     def plot(self, model):
         """ Prints the three most important features for the classification
@@ -273,21 +280,39 @@ if __name__ == '__main__':
             default="data/data_labeled.h5"
             )
     parser.add_argument(
-            "-o",
-            "--output_path",
-            help="Choose the output path of the pickle file",
+            "-m",
+            "--mode",
+            choices=('TT', 'CV'),
+            help="Choose the evaluation mode",
             action="store",
-            default="data/"
+            default="TT"
+            )
+    parser.add_argument(
+            "-p",
+            "--plot",
+            help="Choose if you'll plot the feature importances as bar plots",
+            action="store_true",
+            default=False
             )
     args = parser.parse_args()
-    pickle_path = args.output_path + "features.pkl"
     test = ManualAndXGBoost(
             definition=args.definition,
-            path=args.input_path,
-            pickle_path=pickle_path
+            path=args.input_path
             )
-    X_train, X_test, y_train, y_test = test.preprocess()
-    model = test.train(X_train, y_train)
-    accuracy = test.test(model, X_test, y_test)
-    print("Accuracy: %.2f%%" % (accuracy * 100.0))
-    test.plot(model)
+
+    features, labels = test.preprocess()
+    if args.mode == 'TT':
+        X_train, X_test, y_train, y_test = train_test_split(
+                        features, labels, test_size=0.2,
+                        stratify=labels)
+        model = test.train(X_train, y_train)
+        accuracy = test.test(model, X_test, y_test)
+        print("Accuracy: %.2f%%" % (accuracy * 100.0))
+        if args.plot:
+            test.plot(model)
+    else:
+        scores = test.evaluate(features, labels)
+        results = Output(Classifier.xgboost, Task.classification,
+                         args.definition, '-', '-', '-', Metric.accuracy,
+                         scores)
+        results.write_output()
