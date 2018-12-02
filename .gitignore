@@ -6,3 +6,4 @@ data/*
 __pycache__
 notebooks/.ipynb_checkpoints/
 pytorch_lstm.py
+pretrained_models

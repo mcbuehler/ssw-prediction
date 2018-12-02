@@ -12,8 +12,13 @@ from preprocessing.dataset import DatapointKey as DK
 import os
 import numpy as np
 import matplotlib.pyplot as ply
+from utils.logging import get_logger
+from utils.set_seed import SetSeed
 
-np.random.seed(42)
+
+# Set up logger and seed
+logger = get_logger()
+SetSeed()
 
 
 class HistogramTransformer(BaseEstimator, TransformerMixin):
@@ -101,15 +106,15 @@ class RandomForestClassification():
     Classifier.
     """
 
-    def __init__(self, definition, path, n_bins=100, n_estimators=100,
-                 cv_folds=5):
+    def __init__(self, definition, path_train, n_bins=100, n_estimators=100,
+                 cv_folds=5, path_test=None):
         """
         Parameters
         ----------
             definition: string
                 the definition that you want to do classification for
                 e.g. "CP07"
-            path: string
+            path_train: string
                 the path where the preprocessed input data are
             n_bins: int
                 number of bins to use for the histogram extraction
@@ -117,33 +122,48 @@ class RandomForestClassification():
                 number of estimators to use in the RandomForestClassifier
 
         """
-        self.data_manager = DataManager(path)
+        self.data_manager_train = DataManager(path_train)
+        if path_test:
+            self.data_manager_test = DataManager(path_test)
 
         self.definition = definition
 
         self.cv_folds = cv_folds
         self.n_bins = n_bins
 
+        self.metric_txt = ["F1", "ROCAUC", "Accuracy"]
         self.metrics = [f1_score, roc_auc_score, accuracy_score]
         self.classifier = RandomForestClassifier(n_estimators=n_estimators)
 
-    def _get_raw_data(self):
-        data = self.data_manager.get_data_for_variables(
-            [
-                DK.TEMP_60_90,
-                DK.WIND_60,
-                DK.WIND_65
-            ]
-        )
+    def _get_raw_data(self, train=True):
+        variables = [DK.TEMP_60_90, DK.WIND_60, DK.WIND_65]
+        if train:
+            data = self.data_manager_train.get_data_for_variables(variables)
+        else:
+            data = self.data_manager_test.get_data_for_variables(variables)
         return data
 
-    def _get_labels(self):
-        raw_labels = self.data_manager.get_data_for_variable(self.definition)
+    def _get_labels(self, train=True):
+        if train:
+            raw_labels = self.data_manager_train.get_data_for_variable(self.definition)
+        else:
+            raw_labels = self.data_manager_test.get_data_for_variable(
+                self.definition)
         binary_label = np.apply_along_axis(lambda a: 1 if 1 in a else 0,
                                            axis=1, arr=raw_labels)
         return binary_label
 
-    def evaluate(self, plot=False):
+    def _get_pipeline(self):
+        # We create a pipeline in order to apply the same independent
+        # preprocessing steps to all folds in the cross-validation
+        feature_extraction = HistogramTransformer(n_bins=self.n_bins)
+        steps = [
+            ('feature_extraction', feature_extraction),
+            ('model', self.classifier)
+        ]
+        return Pipeline(steps)
+
+    def evaluate_simulated(self, plot=False):
         """
         Trains the model in a 5-fold cross validation and returns a mean
         and standard deviation for each metric used for evaluation.
@@ -158,26 +178,18 @@ class RandomForestClassification():
             mean_scores: list of length len(self.metrics),
             std_scores: list of length len(self.metrics)
         """
-        # We create a pipeline in order to apply the same independent
-        # preprocessing steps to all folds in the cross-validation
-        feature_extraction = HistogramTransformer(n_bins=self.n_bins)
-        steps = [
-            ('feature_extraction', feature_extraction),
-            ('model', self.classifier)
-        ]
-        pipeline = Pipeline(steps)
-
+        pipeline = self._get_pipeline()
         # Get the raw data for the features
-        raw_data = self._get_raw_data()
+        raw_data_train = self._get_raw_data(train=True)
         # Bring labels in correct format
-        labels = self._get_labels()
+        labels_train = self._get_labels()
 
         # We have an unbalanced dataset, so we stratify
         cv = StratifiedKFold(self.cv_folds, shuffle=True)
 
         # Produce scores for all scoring metrics
         scores = [
-            cross_val_score(pipeline, raw_data, labels, cv=cv,
+            cross_val_score(pipeline, raw_data_train, labels_train, cv=cv,
                             scoring=make_scorer(metric))
             for metric in self.metrics
         ]
@@ -190,6 +202,30 @@ class RandomForestClassification():
             self.plot(scores_means, scores_std)
 
         return scores_means, scores_std
+
+    def evaluate_real(self):
+        logger.info("Evaluating real data...")
+        pipeline = self._get_pipeline()
+        # Get the raw data for the features
+        raw_data_train = self._get_raw_data()
+        # Bring labels in correct format
+        labels_train = self._get_labels()
+
+        # We fit our classifier on all the simulated data
+        pipeline.fit(raw_data_train, labels_train)
+
+        logger.info("Loading test data...")
+        raw_data_test = self._get_raw_data(train=False)
+        labels_test = self._get_labels(train=False)
+        logger.info("Evaluating on real data ({} data points)...".format(len(labels_test)))
+
+        # Predict real test dataset and evaulate
+        pred_test = pipeline.predict(raw_data_test)
+
+        scores = [metric(labels_test, pred_test) for metric in self.metrics]
+        logger.info("Scores ({}, {}, {}): {}, {}, {}".format(*self.metric_txt, *scores))
+
+        return scores
 
     def plot(self, scores_mean, scores_std):
         """
@@ -206,11 +242,8 @@ class RandomForestClassification():
             scores_std: list of length len(self.metrics) with
             standard deviations for each metric
         """
-        # Make sure to have the correct order for classifier_txt
-        x_txt = ["F1", "ROCAUC", "Accuracy"]
-
         ply.figure()
-        ply.bar(x_txt, scores_mean, yerr=scores_std, align='center',
+        ply.bar(self.metric_txt, scores_mean, yerr=scores_std, align='center',
                 alpha=0.5, ecolor='black', capsize=10)
 
         ply.title(
@@ -232,24 +265,44 @@ if __name__ == '__main__':
         default=DK.CP07
     )
     parser.add_argument(
-        "-i",
-        "--input_path",
+        "-i_train",
+        "--input_path_train",
         help="Choose the input relative path where the data are",
         action="store",
         default=os.getenv("DSLAB_CLIMATE_LABELED_DATA")
     )
+    parser.add_argument(
+        "-i_test",
+        "--input_path_test",
+        help="Choose the input relative path where the data are",
+        action="store",
+        default=os.getenv("DSLAB_CLIMATE_LABELED_REAL_DATA")
+    )
     args = parser.parse_args()
 
-    print("n_bins --> scores for F1, ROCAUC, Accuracy")
-    for n_bins in [5, 10, 20, 30, 50, 80, 120, 150, 200]:
-        model = RandomForestClassification(
-            definition=args.definition,
-            path=args.input_path,
-            n_bins=n_bins,
-            n_estimators=1000
-        )
+    evaluate_real = True
 
-        mean_scores, _ = model.evaluate(plot=False)
-        print("n_bins: {} --> {:.4f}, {:.4f}, {:.4f}".format(n_bins,
-                                                             *mean_scores)
-              )
+    if evaluate_real:
+        model = RandomForestClassification(
+                definition=args.definition,
+                path_train=args.input_path_train,
+                n_bins=80,
+                n_estimators=1000,
+                path_test=args.input_path_test
+            )
+        scores = model.evaluate_real()
+    else:
+        # Run gridsearch for n_bins
+        print("n_bins --> scores for F1, ROCAUC, Accuracy")
+        for n_bins in [5, 10, 20, 30, 50, 80, 120, 150, 200]:
+            model = RandomForestClassification(
+                definition=args.definition,
+                path_train=args.input_path_train,
+                n_bins=n_bins,
+                n_estimators=1000
+            )
+
+            mean_scores, _ = model.evaluate_simulated(plot=False)
+            print("n_bins: {} --> {:.4f}, {:.4f}, {:.4f}".format(n_bins,
+                                                                 *mean_scores)
+                  )
