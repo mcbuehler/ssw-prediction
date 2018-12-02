@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import time
-from enums import Task, Metric, Classifier
+from utils.enums import Task, Metric, Classifier
 from preprocessing.dataset import DatapointKey
 
 
