@@ -17,3 +17,9 @@ class Classifier:
     cnn = "cnn"
     rnn = "rnn"
     randomforest = "randomforest"
+
+
+class DataType:
+    """An enum class for the data type"""
+    real = "real"
+    simulated = "simulated"
