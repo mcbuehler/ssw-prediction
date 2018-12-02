@@ -196,7 +196,7 @@ class ManualAndXGBoost:
         model.fit(X_train, y_train)
         return model
 
-    def evaluate(self, X, y):
+    def evaluate_simulated(self, X, y):
         """Runs a 5-CV on the data and returns the scores as a python list
         Parameters
         ----------
@@ -308,7 +308,7 @@ if __name__ == '__main__':
         if args.plot:
             test.plot(model)
     else:
-        scores = test.evaluate(features, labels)
+        scores = test.evaluate_simulated(features, labels)
         results = Output(Classifier.xgboost, Task.classification,
                          args.definition, '-', '-', '-', Metric.accuracy,
                          scores)
