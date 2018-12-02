@@ -12,8 +12,8 @@ class Output:
     tasks = ['prediction', 'classification']
     data_types = ['real', 'simulated']
 
-    def __init__(self, classifier, task, data_type, definition, cutoff_point,
-                 feature_interval, prediction_interval, metric, scores,
+    def __init__(self, classifier, task, data_type, definition, cutoff_point='-',
+                 feature_interval='-', prediction_interval='-', metric=None, scores=None,
                  path=None):
         """Constructor of the output class
 

@@ -13,8 +13,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as ply
 from utils.logging import get_logger
+from utils.output_class import Output
 from utils.set_seed import SetSeed
-
+from utils.enums import Classifier, Task, Metric, DataType
+from preprocessing.dataset import DatapointKey as DK
 
 # Set up logger and seed
 logger = get_logger()
@@ -224,6 +226,26 @@ class RandomForestClassification():
 
         scores = [metric(labels_test, pred_test) for metric in self.metrics]
         logger.info("Scores ({}, {}, {}): {}, {}, {}".format(*self.metric_txt, *scores))
+
+        # Write results to output file
+        output_default_args = dict(
+            classifier=Classifier.randomforest,
+                task=Task.classification,
+                data_type=DataType.real,
+                definition=self.definition
+        )
+
+        out_metrics = (
+            (Metric.f1, scores[0]),
+            (Metric.auroc, scores[1]),
+            (Metric.accuracy, scores[2])
+        )
+        for metric, score in out_metrics:
+            Output(
+                **output_default_args,
+                metric=metric,
+                scores=[score]
+            ).write_output()
 
         return scores
 
