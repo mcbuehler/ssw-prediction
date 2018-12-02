@@ -8,7 +8,6 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.pipeline import Pipeline
 
 from core.data_manager import DataManager
-from preprocessing.dataset import DatapointKey as DK
 import os
 import numpy as np
 import matplotlib.pyplot as ply
@@ -147,7 +146,8 @@ class RandomForestClassification():
 
     def _get_labels(self, train=True):
         if train:
-            raw_labels = self.data_manager_train.get_data_for_variable(self.definition)
+            raw_labels = self.data_manager_train.get_data_for_variable(
+                self.definition)
         else:
             raw_labels = self.data_manager_test.get_data_for_variable(
                 self.definition)
@@ -206,6 +206,14 @@ class RandomForestClassification():
         return scores_means, scores_std
 
     def evaluate_real(self):
+        """
+        Trains the model on the entire simulated training set and
+        predicts the real data. Reports a single score for all used metrics.
+
+        Returns
+        -------
+            scores: list of length len(self.metrics)
+        """
         logger.info("Evaluating real data...")
         pipeline = self._get_pipeline()
         # Get the raw data for the features
@@ -219,20 +227,22 @@ class RandomForestClassification():
         logger.info("Loading test data...")
         raw_data_test = self._get_raw_data(train=False)
         labels_test = self._get_labels(train=False)
-        logger.info("Evaluating on real data ({} data points)...".format(len(labels_test)))
+        logger.info("Evaluating on real data ({} data points)...".format(
+            len(labels_test)))
 
         # Predict real test dataset and evaulate
         pred_test = pipeline.predict(raw_data_test)
 
         scores = [metric(labels_test, pred_test) for metric in self.metrics]
-        logger.info("Scores ({}, {}, {}): {}, {}, {}".format(*self.metric_txt, *scores))
+        logger.info("Scores ({}, {}, {}): {}, {}, {}".format(*self.metric_txt,
+                                                             *scores))
 
         # Write results to output file
         output_default_args = dict(
             classifier=Classifier.randomforest,
-                task=Task.classification,
-                data_type=DataType.real,
-                definition=self.definition
+            task=Task.classification,
+            data_type=DataType.real,
+            definition=self.definition
         )
 
         out_metrics = (
@@ -302,16 +312,18 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    # Change this if you want to switch
+    # between evaluating real / simulated data
     evaluate_real = True
 
     if evaluate_real:
         model = RandomForestClassification(
-                definition=args.definition,
-                path_train=args.input_path_train,
-                n_bins=80,
-                n_estimators=1000,
-                path_test=args.input_path_test
-            )
+            definition=args.definition,
+            path_train=args.input_path_train,
+            n_bins=80,
+            n_estimators=1000,
+            path_test=args.input_path_test
+        )
         scores = model.evaluate_real()
     else:
         # Run gridsearch for n_bins
