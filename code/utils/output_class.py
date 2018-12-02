@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 import time
-from utils.enums import Task, Metric, Classifier
+from utils.enums import Task, Metric, Classifier, DataType
 from preprocessing.dataset import DatapointKey
 
 
@@ -10,14 +10,16 @@ class Output:
     metrics = ['accuracy', 'auroc', 'f1']
     definitions = ['CP07', 'U&T', 'U65']
     tasks = ['prediction', 'classification']
+    data_types = ['real', 'simulated']
 
-    def __init__(self, classifier, task, definition, cutoff_point,
+    def __init__(self, classifier, task, data_type, definition, cutoff_point,
                  feature_interval, prediction_interval, metric, scores,
                  path=None):
         """Constructor of the output class
 
         :classifier: The classifier that has been used for the task
         :task: The task (either prediction or classification)
+        :data_type: The type of the data (either real or simulated)
         :definition: The definition used (CP07, U&T, U65)
         :cutoff_point: The maximum cutoff point where you will have access to
         :feature_interval: The number of days in the past where you will look
@@ -29,6 +31,8 @@ class Output:
         """
         assert task in self.tasks, (
                 "The available tasks are 'prediction' and 'classification'")
+        assert data_type in self.data_types, (
+                "The available data types are 'real' and 'simulated'")
         assert definition in self.definitions, (
                 "The available definitions are 'CP07', 'U&T', 'U65'")
         assert metric in self.metrics, (
@@ -36,6 +40,7 @@ class Output:
 
         self.classifier = classifier
         self.task = task
+        self.data_type = data_type
         self.definition = definition
         self.cutoff_point = cutoff_point
         self.feature_interval = feature_interval
@@ -60,11 +65,12 @@ class Output:
         ts = time.ctime()
         label = subprocess.check_output(
                 ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
-        output_string = "{},{},{},{},{},{},{},{},{},{}\n".format(
+        output_string = "{},{},{},{},{},{},{},{},{},{},{}\n".format(
                 ts,
                 label,
                 self.classifier,
                 self.task,
+                self.data_type,
                 self.definition,
                 self.cutoff_point,
                 self.feature_interval,
@@ -77,6 +83,7 @@ class Output:
 
 
 if __name__ == "__main__":
-    test = Output(Classifier.xgboost, Task.prediction, DatapointKey.CP07, 120,
+    test = Output(Classifier.xgboost, Task.prediction,
+                  DataType.simulated, DatapointKey.CP07, 120,
                   60, 30, Metric.auroc, 5*[0.78])
     test.write_output()
