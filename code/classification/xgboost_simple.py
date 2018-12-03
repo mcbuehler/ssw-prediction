@@ -4,7 +4,7 @@ import argparse
 from core.data_manager import DataManager
 from tsfresh import extract_features
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score,
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 from xgboost import XGBClassifier
 from matplotlib import pyplot
 from utils.set_seed import SetSeed
