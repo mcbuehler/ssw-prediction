@@ -4,7 +4,7 @@ import argparse
 from core.data_manager import DataManager
 from tsfresh import extract_features
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score,
 from xgboost import XGBClassifier
 from matplotlib import pyplot
 from utils.set_seed import SetSeed
@@ -25,22 +25,18 @@ class ManualAndXGBoost:
 
     variables = ['wind_60', 'wind_65', 'temp_60_90']
 
-    def __init__(self, definition, path):
+    def __init__(self, definition):
         """The constructor of the ManualAndXgboost class
 
         Parameters
         ----------
             definition: string
                 the definition that you want to do classification for
-            path: string
-                the path where the input data are
         """
         self.definition = definition
-        self.path = path
-        self.data_manager = DataManager(self.path)
         SetSeed().set_seed()
 
-    def __get_labels(self):
+    def __get_labels(self, data_manager):
         """Returns the binary labels as a numpy array for the corresponding
         definition
 
@@ -49,14 +45,14 @@ class ManualAndXGBoost:
             labels: numpy array
                 A numpy array of size [num_data x 1] with the labels
         """
-        labels = self.data_manager.get_data_for_variable(self.definition)
+        labels = data_manager.get_data_for_variable(self.definition)
         binary_labels = []
         for label in labels:
             binary_labels.append(int(np.any(label[:])))
         labels = np.array(binary_labels)
         return labels
 
-    def _bring_data_to_format(self):
+    def _bring_data_to_format(self, data_manager):
         """Gets the corresponding initial variables using the data manager class
         and returns a data numpy array that the variables are in format
         [num_data*num_variables, len_winter]. The trick here is that
@@ -69,7 +65,7 @@ class ManualAndXGBoost:
             """
         temp_data = []
         for variable in self.variables:
-            temp_data.append(self.data_manager.get_data_for_variable(
+            temp_data.append(data_manager.get_data_for_variable(
                              variable))
 
         temp_data = np.array(temp_data)
@@ -151,30 +147,24 @@ class ManualAndXGBoost:
         features = np.asarray(features)
         return features
 
-    def preprocess(self):
-        """This function produces the train and the test split of the features
-        as well as the train and the test split of the labels. In order to do
-        that it uses other functions to produce the labels and the features. It
-        first checks if the labels are in the corresponding folder provided as
-        an argument to the class and if not it produces them. Then it does the
-        splitting.
+    def preprocess(self, path):
+        """This function produces the features and the labels for the simulated
+        data. In order to do that it uses other functions to produce the labels
+        and the features. It first checks if the labels are in the
+        corresponding folder provided as an argument to the class and if not
+        it produces them.
 
         Returns
         -------
-            X_train: numpy array
+            features: numpy array
                 A numpy array of shape [num_data x num_features] that contains
-                the training data
-            X_test: numpy array
-                A numpy array of shape [num_data x num_features] that contains
-                the test data
-            y_train: numpy array
-                A numpy array of shape [num_data] that contains the training
-                labels
-            y_test: numpy array
-                A numpy array of shape [num_data] that contains the test labels
+                the features calculated by tsfresh
+            labels: numpy array
+                A numpy array of shape [num_data] that contains the labels
         """
-        labels = self.__get_labels()
-        data = self._bring_data_to_format()
+        data_manager = DataManager(path)
+        labels = self.__get_labels(data_manager)
+        data = self._bring_data_to_format(data_manager)
         features = self._produce_features(data)
 
         return features, labels
@@ -241,7 +231,7 @@ class ManualAndXGBoost:
         pyplot.bar(list(range(1, 4)), top_3)
         pyplot.show()
 
-    def test(self, model, X_test, y_test):
+    def test(self, model, X_test, y_test, metric):
         """Returns the accuracy of the model on the test set.
         Parameters
         ----------
@@ -257,8 +247,11 @@ class ManualAndXGBoost:
         """
         y_pred = model.predict(X_test)
         predictions = [round(value) for value in y_pred]
-        accuracy = accuracy_score(y_test, predictions)
-        return accuracy
+        if metric == 'f1_score':
+            score = metric(y_test, predictions, average='macro')
+        else:
+            score = metric(y_test, predictions)
+        return score
 
 
 if __name__ == '__main__':
@@ -273,11 +266,27 @@ if __name__ == '__main__':
             default="CP07"
            )
     parser.add_argument(
-            "-i",
-            "--input_path",
-            help="Choose the input relative path where the data are",
+            "-sp",
+            "--simulated_path",
+            help="Choose the input relative path where the simulated data are",
             action="store",
-            default="data/data_labeled.h5"
+            default="data/simulated_data_labeled.h5"
+            )
+    parser.add_argument(
+            "-rp",
+            "--real_path",
+            help="Choose the input relative path where the real data are",
+            action="store",
+            default="data/real_data_labeled.h5"
+            )
+    parser.add_argument(
+            "-dt",
+            "--data_type",
+            choices=('sim', 'real'),
+            help="Choose if the evaluation is going to happen on real or"
+                 "simulated data",
+            action="store",
+            default="sim"
             )
     parser.add_argument(
             "-m",
@@ -296,31 +305,51 @@ if __name__ == '__main__':
             )
     args = parser.parse_args()
     test = ManualAndXGBoost(
-            definition=args.definition,
-            path=args.input_path
+            definition=args.definition
             )
 
-    features, labels = test.preprocess()
-    if args.mode == 'TT':
-        X_train, X_test, y_train, y_test = train_test_split(
-                        features, labels, test_size=0.2,
-                        stratify=labels)
-        model = test.train(X_train, y_train)
-        accuracy = test.test(model, X_test, y_test)
-        print("Accuracy: %.2f%%" % (accuracy * 100.0))
-        if args.plot:
-            test.plot(model)
+    if args.data_type == 'sim':
+        features, labels = test.preprocess(args.simulated_path)
+        if args.mode == 'TT':
+            X_train, X_test, y_train, y_test = train_test_split(
+                            features, labels, test_size=0.2,
+                            stratify=labels)
+            model = test.train(X_train, y_train)
+            score = test.test(model, X_test, y_test, accuracy_score)
+            print("Accuracy: %.2f%%" % (score * 100.0))
+            if args.plot:
+                test.plot(model)
+        else:
+            for metric in ['accuracy', 'f1', 'auroc']:
+                if metric == 'f1':
+                    scores = test.evaluate_simulated(features, labels,
+                                                     'f1_macro')
+                elif metric == 'auroc':
+                    scores = test.evaluate_simulated(
+                            features, labels, 'roc_auc')
+                else:
+                    scores = test.evaluate_simulated(features, labels, metric)
+                results = Output(Classifier.xgboost, Task.classification,
+                                 DataType.simulated, args.definition,
+                                 '-', '-', '-',
+                                 metric, scores)
+                results.write_output()
     else:
+        real_features, real_labels = test.preprocess(args.real_path)
+        sim_features, sim_labels = test.preprocess(args.simulated_path)
+        model = test.train(sim_features, sim_labels)
         for metric in ['accuracy', 'f1', 'auroc']:
-            if metric == 'f1':
-                scores = test.evaluate_simulated(features, labels,
-                                                 'f1_macro')
-            elif metric == 'auroc':
-                scores = test.evaluate_simulated(features, labels, 'roc_auc')
-            else:
-                scores = test.evaluate_simulated(features, labels, metric)
-            results = Output(Classifier.xgboost, Task.classification,
-                             DataType.simulated, args.definition,
-                             '-', '-', '-',
-                             metric, scores)
-            results.write_output()
+                if metric == 'f1':
+                    scores = [test.test(model, real_features, real_labels,
+                                        f1_score)]
+                elif metric == 'auroc':
+                    scores = [test.test(model, real_features, real_labels,
+                                        roc_auc_score)]
+                else:
+                    scores = [test.test(model, real_features, real_labels,
+                                        accuracy_score)]
+                results = Output(Classifier.xgboost, Task.classification,
+                                 DataType.simulated, args.definition,
+                                 '-', '-', '-',
+                                 metric, scores)
+                results.write_output()
