@@ -349,7 +349,7 @@ if __name__ == '__main__':
                     scores = [test.test(model, real_features, real_labels,
                                         accuracy_score)]
                 results = Output(Classifier.xgboost, Task.classification,
-                                 DataType.simulated, args.definition,
+                                 DataType.real, args.definition,
                                  '-', '-', '-',
                                  metric, scores)
                 results.write_output()
