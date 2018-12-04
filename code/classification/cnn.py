@@ -160,7 +160,7 @@ class CNNClassification():
         # Trim dataset so each winter will last for 210 days
         X_test = X_test[:, :, :210]
 
-        # Predict real test dataset and evaulate
+        # Predict real test dataset and evaluate
         y_pred = self.classifier.predict(X_test)
 
         scores = [metric(y_test, y_pred) for metric in self.metrics]
