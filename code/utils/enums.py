@@ -19,6 +19,7 @@ class Classifier:
     randomforest = "randomforest"
     cnn_max_pool = "cnn_max_pool"
 
+
 class DataType:
     """An enum class for the data type"""
     real = "real"
