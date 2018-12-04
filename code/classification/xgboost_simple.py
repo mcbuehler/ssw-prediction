@@ -22,13 +22,14 @@ class ManualAndXGBoost:
 
     Attributes
     ----------
-    features: list
-        The initial features used from the array of features that we have
+    variables: list
+        The initial variables used from the array of variables that we have
     """
     variables = [DK.WIND_60, DK.WIND_65, DK.TEMP_60_90]
 
     def __init__(self, definition):
-        """The constructor of the ManualAndXgboost class
+        """The constructor of the ManualAndXgboost class. Also sets the random
+        seed.
 
         Parameters
         ----------
@@ -42,6 +43,11 @@ class ManualAndXGBoost:
         """Returns the binary labels as a numpy array for the corresponding
         definition
 
+        Parameters
+        ----------
+            data_manager: core.DataManager class
+                A data manager class initialized with the real or simulated
+                data path
         Returns
         -------
             labels: numpy array
@@ -60,6 +66,13 @@ class ManualAndXGBoost:
         [num_data*num_variables, len_winter]. The trick here is that
         consecutive lines are not of the same variable space but from different
         variable
+
+        Parameters
+        ----------
+            data_manager: core.DataManager class
+                A data manager class initialized with the real or simulated
+                data path
+
         Returns
         -------
             data: numpy array
@@ -144,6 +157,10 @@ class ManualAndXGBoost:
         corresponding folder provided as an argument to the class and if not
         it produces them.
 
+        Parameters
+        ----------
+            path: string
+                The input path of the data
         Returns
         -------
             features: numpy array
@@ -239,8 +256,9 @@ class ManualAndXGBoost:
 
         Returns
         -------
-            accuracy: float
-                The accuracy of the model
+            scores:
+                A python dict with the scores in the same format like the
+                cross_validate function of scikit-learn
         """
         y_pred = model.predict(X_test)
         predictions = [round(value) for value in y_pred]
