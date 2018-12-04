@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
     accuracy_score
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.model_selection import cross_validate, StratifiedKFold
 from sklearn.pipeline import Pipeline
 
 from core.data_manager import DataManager
@@ -196,11 +196,14 @@ class RandomForestClassification():
 
         logger.info("Scoring for {} metrics...".format(len(self.metrics)))
         # Produce scores for all scoring metrics
-        scores = [
-            cross_val_score(pipeline, raw_data_train, labels_train, cv=cv,
-                            scoring=make_scorer(metric))
-            for metric in self.metrics
-        ]
+        scorers = {txt: make_scorer(metric) for txt, metric in
+                   zip(self.metric_txt, self.metrics)}
+        scores = cross_validate(pipeline, raw_data_train, labels_train, cv=cv,
+                            scoring=scorers)
+        # cross_validate returns dict.
+        # Extract test scores
+        scores = [scores['test_{}'.format(txt)] for txt in self.metric_txt]
+
 
         # We only want to keep mean and std for each metric
         scores_means = [np.mean(score) for score in scores]
@@ -371,7 +374,7 @@ if __name__ == '__main__':
 
     # n_bins was estimated via cross-validation on simulated data set
     n_bins = 20
-    n_estimators = 10000
+    n_estimators = 1000
 
     if args.dataset == "real":
         model = RandomForestClassification(
