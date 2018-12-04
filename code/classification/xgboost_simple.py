@@ -1,10 +1,13 @@
 import numpy as np
 import pandas as pd
 import argparse
+import functools
 from core.data_manager import DataManager
+from preprocessing.dataset import DatapointKey as DK
 from tsfresh import extract_features
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split, cross_validate
+from sklearn.metrics import (accuracy_score, make_scorer, f1_score,
+                             roc_auc_score)
 from xgboost import XGBClassifier
 from matplotlib import pyplot
 from utils.set_seed import SetSeed
@@ -22,8 +25,7 @@ class ManualAndXGBoost:
     features: list
         The initial features used from the array of features that we have
     """
-
-    variables = ['wind_60', 'wind_65', 'temp_60_90']
+    variables = [DK.WIND_60, DK.WIND_65, DK.TEMP_60_90]
 
     def __init__(self, definition):
         """The constructor of the ManualAndXgboost class
@@ -63,27 +65,15 @@ class ManualAndXGBoost:
             data: numpy array
                 A numpy array of format [num_data*num_features, len_winter]
             """
-        temp_data = []
-        for variable in self.variables:
-            temp_data.append(data_manager.get_data_for_variable(
-                             variable))
+        # returns an array of dimensions (N, FC, D)
+        temp_data = data_manager.get_data_for_variables(self.variables)
 
-        temp_data = np.array(temp_data)
-        num_variables = len(self.variables)
-        num_data = temp_data[0].shape[0]
         data = []
-        # The tricky part here is that now we have a 3D tensor for the three
-        # variables but it is actually better to convert it to a 2D tensor that
-        # will have the 3 features in 3 consecutive lines instead of having
-        # them with distance num_data (in our case ~3000)
-        for i in range(num_data):
-            for j in range(num_variables):
-                data.append(temp_data[j, i, :])
+        for i in range(len(temp_data)):
+            for j in range(len(temp_data[i])):
+                    data.append(temp_data[i, j])
+
         data = np.array(data)
-        # testing that the transformation was done correctly
-        # for i in range(num_data*3):
-        #     print(np.array_equal(data[i], temp_data[i % 3][int(i/3)]))
-        # sys.exit(0)
         return data
 
     def _produce_features(self, data):
@@ -189,8 +179,9 @@ class ManualAndXGBoost:
         model.fit(X_train, y_train)
         return model
 
-    def evaluate_simulated(self, X, y, metric):
-        """Runs a 5-CV on the data and returns the scores as a python list
+    def evaluate_simulated(self, X, y, scoring):
+        """Runs a dictionary of the scores of AUROC, Accuracy and F1-Score
+        on 5-CV of the data
         Parameters
         ----------
             X: numpy array
@@ -198,16 +189,22 @@ class ManualAndXGBoost:
                 dimensionality]
             y: numpy array
                 The numpy array of the labels with shape [num_data, 1]
+            scoring: dict
+                A dictionary that has a correspondence from the metrics that we
+                use in the output class to the one used by scikit-learn
         Returns
         -------
-            scores: list
-                A python list with the scores of the CV
+            scores:
+                A python dict with the info provided by the cross_validate
+                function of scikit-learn
         """
         model = XGBClassifier(max_depth=5, n_estimators=1000,
                               reg_alpha=0.1)
-        # tip: XGBClassifier inherits from sklearn's ClassifierMixin so the
-        # following line initializes directly a StratifiedKFold
-        scores = cross_val_score(model, X, y, cv=5, scoring=metric)
+
+        # this method will run 5 Stratified CV with a model initialized
+        # previously and a scoring dictionary that contains auroc, accuracy and
+        # f1 score
+        scores = cross_validate(model, X, y, cv=5, scoring=scoring)
         return scores
 
     def plot(self, model):
@@ -231,7 +228,7 @@ class ManualAndXGBoost:
         pyplot.bar(list(range(1, 4)), top_3)
         pyplot.show()
 
-    def test(self, model, X_test, y_test, metric):
+    def test(self, model, X_test, y_test, scoring):
         """Returns the accuracy of the model on the test set.
         Parameters
         ----------
@@ -247,11 +244,29 @@ class ManualAndXGBoost:
         """
         y_pred = model.predict(X_test)
         predictions = [round(value) for value in y_pred]
-        if metric == 'f1_score':
-            score = metric(y_test, predictions, average='macro')
-        else:
-            score = metric(y_test, predictions)
+        score = {}
+        for key, value in scoring.items():
+            score['test_' + key] = [value(y_test, predictions)]
         return score
+
+    @staticmethod
+    def write_to_csv(datatype, scores):
+        """Writes to the results.csv file. It accepts the scores as a dictionary
+        returned by cross_validate and the datatype (real or simulated) and
+        then initializes the Output class with the proper parameters in order
+        to write to the .csv file
+        Parameters
+        ----------
+            datatype: utils.enum.DataType instance
+                the type of the data (real or simulated)
+            scores: dictionary
+        """
+        for key, value in scores.items():
+            if key.startswith('test'):
+                results = Output(Classifier.xgboost, Task.classification,
+                                 datatype, args.definition, '-', '-', '-',
+                                 key.split('_')[1], value)
+                results.write_output()
 
 
 if __name__ == '__main__':
@@ -308,6 +323,16 @@ if __name__ == '__main__':
             definition=args.definition
             )
 
+    scoring_sim = {
+            'auroc': 'roc_auc',
+            'accuracy': make_scorer(accuracy_score),
+            'f1': 'f1_macro'
+            }
+    scoring_real = {
+            'auroc': roc_auc_score,
+            'accuracy': accuracy_score,
+            'f1': functools.partial(f1_score, average='macro')
+            }
     if args.data_type == 'sim':
         features, labels = test.preprocess(args.simulated_path)
         if args.mode == 'TT':
@@ -320,36 +345,11 @@ if __name__ == '__main__':
             if args.plot:
                 test.plot(model)
         else:
-            for metric in ['accuracy', 'f1', 'auroc']:
-                if metric == 'f1':
-                    scores = test.evaluate_simulated(features, labels,
-                                                     'f1_macro')
-                elif metric == 'auroc':
-                    scores = test.evaluate_simulated(
-                            features, labels, 'roc_auc')
-                else:
-                    scores = test.evaluate_simulated(features, labels, metric)
-                results = Output(Classifier.xgboost, Task.classification,
-                                 DataType.simulated, args.definition,
-                                 '-', '-', '-',
-                                 metric, scores)
-                results.write_output()
+            scores = test.evaluate_simulated(features, labels, scoring_sim)
+            test.write_to_csv(DataType.simulated, scores)
     else:
         real_features, real_labels = test.preprocess(args.real_path)
         sim_features, sim_labels = test.preprocess(args.simulated_path)
         model = test.train(sim_features, sim_labels)
-        for metric in ['accuracy', 'f1', 'auroc']:
-                if metric == 'f1':
-                    scores = [test.test(model, real_features, real_labels,
-                                        f1_score)]
-                elif metric == 'auroc':
-                    scores = [test.test(model, real_features, real_labels,
-                                        roc_auc_score)]
-                else:
-                    scores = [test.test(model, real_features, real_labels,
-                                        accuracy_score)]
-                results = Output(Classifier.xgboost, Task.classification,
-                                 DataType.simulated, args.definition,
-                                 '-', '-', '-',
-                                 metric, scores)
-                results.write_output()
+        scores = test.test(model, real_features, real_labels, scoring_real)
+        test.write_to_csv(DataType.real, scores)
