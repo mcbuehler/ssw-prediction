@@ -194,11 +194,8 @@ class CNNClassification():
         )
 
         for metric, score in out_metrics:
-            Output(
-                **output_default_args,
-                metric=metric,
-                scores=[score]
-            ).write_output()
+            Output(metric=metric, scores=[score],
+                   **output_default_args).write_output()
 
     def save_model(self):
         """
