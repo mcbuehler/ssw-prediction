@@ -1,8 +1,10 @@
 import os
+
 import h5py
 import numpy as np
-from dataset import DatapointKey
 from data_manager import DataManager
+from dataset import DatapointKey
+import argparse
 
 
 def check_SSW(m_temp_gradient, ssw):
@@ -335,7 +337,7 @@ def label_dataset(path_in, path_out):
 
         print("Writing labelled outputs...")
 
-        for i, key in enumerate(keys):
+        for i, key in enumerate(list(data_manager.data_file.keys())):
             g = f2.create_group(key)
 
             for var in data_fields:
@@ -352,7 +354,17 @@ def label_dataset(path_in, path_out):
 
 
 if __name__ == '__main__':
-    path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--real',
+                        help='Use this flag if you want to label real data',
+                        action='store_true')
+    args = parser.parse_args()
+
+    if args.real:
+        path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT_REAL")
+    else:
+        path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
+
     path_in = os.path.join(path_preprocessed, "data_preprocessed.h5")
     path_out = os.path.join(path_preprocessed, "data_labeled.h5")
     label_dataset(path_in, path_out)
