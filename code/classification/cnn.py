@@ -1,166 +1,287 @@
 import os
+import time
 
-import cnn_model
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.utils.data as data
+from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
+    accuracy_score
+from sklearn.model_selection import cross_validate, StratifiedKFold
+from skorch import NeuralNetClassifier
+
+import cnn_model
 from data_manager import DataManager
 from dataset import DatapointKey as DPK
-from sklearn.model_selection import train_test_split
-from utils.set_gpu import set_gpu
+from set_gpu import set_gpu
+from set_seed import SetSeed
+from utils.enums import Classifier, Task, Metric, DataType
+from utils.output_class import Output
 
 
-class SSWDataset(data.Dataset):
+class CNNClassification():
     """
-    Extends PyTorch's data.Dataset class to provide a dataset for PyTorch
-    models. It creates a training and test dataset. It packs "wind_65",
-    "temp_60_90" and "wind_60" as features and SSW_definition as yearly
-    labels as prompted by the user
+    Class which encapsulates Pytorch Neural Networks model to train, load and
+    save models contained at cnn_model.py
     """
 
-    # A dictionary which indicates which time series is going
-    # to be used in the classifier
-    data_to_use = {
-        DPK.CP07: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
-        DPK.UT: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
-        DPK.U65: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
-        DPK.ZPOL: [DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60],
-    }
-
-    def __init__(self, file_path, label_type, train=True):
+    def __init__(self, path_train, definition, path_test=None,
+                 c_model_name=Classifier.cnn, cv_folds=5, num_epochs=100,
+                 batch_size=8, learning_rate=0.0004):
         """
-        Initializer of SSWDataset
-        :param file_path: Path to h5 file which contains labeled dataset
-        :param label_type: Definition to be used for labeling (i.e. "CP07")
-        :param train: Returns test data if False, returns training data if
-        True
-        """
-        super(SSWDataset, self).__init__()
+        Initializer for CNNClassification class.
 
-        data_type = SSWDataset.data_to_use[label_type]
-
-        # Get data from data manager
-        data_manager = DataManager(file_path)
-
-        features = data_manager.get_data_for_variables(data_type)
-        labels = np.any(data_manager.get_data_for_variable(label_type),
-                        axis=1)
-
-        # Train test split
-        X_train, X_test, y_train, y_test = train_test_split(
-            features, labels, test_size=0.2,
-            stratify=labels, random_state=42)
-
-        if train:
-            self.data = X_train
-            self.labels = y_train
-        else:
-            self.data = X_test
-            self.labels = y_test
-
-    def __getitem__(self, index):
-        return (torch.from_numpy(self.data[index]).float(),
-                self.labels[index].astype(int))
-
-    def __len__(self):
-        return self.data.shape[0]
-
-
-class ConvNetClassifier():
-
-    def __init__(self, file_path, label_type):
-        """
-        Initializer for ConvNetClassifier
-        :param file_path: Path to h5 file which contains labeled dataset
-        :param label_type: Definition to be used for labeling (i.e. "CP07")
-        """
-        # Device configuration
-        device = torch.device('cuda:' + os.getenv("CUDA_VISIBLE_DEVICES")
-                              if torch.cuda.is_available() else 'cpu')
-
-        self.label_type = label_type
-        self.train_dataset = SSWDataset(file_path, self.label_type)
-        self.test_dataset = SSWDataset(file_path, self.label_type, train=False)
-
-        # Number of channels in the CNN - number of features to use
-        num_ts = len(SSWDataset.data_to_use[self.label_type])
-        self.model = cnn_model.ConvNet(num_ts).to(device)
-
-    def train(self, num_epochs=100, batch_size=16, learning_rate=0.0004):
-        """
-        Function to train the CNN.
-        :param num_epochs: Number of Epochs to train the network
-        :param batch_size: Batch size for training
+        :param path_train: path to the h5 file for the training dataset
+        (simulated data)
+        :param definition: Type of SSW definition to use. example: "CP07",
+        "U65"
+        :param path_test: path to the h5 file for the test dataset (real data)
+        :param c_model_name: CNN classifier name which is going to be used
+        example: "cnn", "cnn_max_pool"
+        :param cv_folds: number of folds for the cross-validation which is
+        used to evaluate the performance on the training dataset.
+        :param num_epochs: Number of epochs to train the model
+        :param batch_size: Batch size for Adam optimizer
         :param learning_rate: Learning rate for Adam optimizer
         """
+
         # Device configuration
         device = torch.device('cuda:' + os.getenv("CUDA_VISIBLE_DEVICES")
                               if torch.cuda.is_available() else 'cpu')
 
-        train_loader = torch.utils.data.DataLoader(dataset=self.train_dataset,
-                                                   batch_size=batch_size,
-                                                   shuffle=True)
+        SetSeed().set_seed()
 
-        self.model.train()
+        self.data_manager_train = DataManager(path_train)
+        if path_test:
+            self.data_manager_test = DataManager(path_test)
 
-        # Loss and optimizer
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(self.model.parameters(),
-                                     lr=learning_rate)
+        self.definition = definition
 
-        for epoch in range(num_epochs):
-            for i, (winters, labels) in enumerate(train_loader):
-                winters = winters.to(device)
-                labels = labels.to(device)
+        self.cv_folds = cv_folds
 
-                # Forward pass
-                outputs = self.model(winters)
-                loss = criterion(outputs, labels)
+        self.metric_txt = ["F1", "ROCAUC", "Accuracy"]
+        self.metrics = [f1_score, roc_auc_score, accuracy_score]
+        self.model_class_name = c_model_name
 
-                # Backward and optimize
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+        # Number of channels in the CNN - number of features to use
+        num_ts = 3
 
-    def test(self):
+        self.classifier = NeuralNetClassifier(
+            cnn_model.get_cnn_classes()[c_model_name](num_ts),
+            criterion=nn.CrossEntropyLoss,
+            max_epochs=num_epochs,
+            lr=learning_rate,
+            batch_size=batch_size,
+            device=device,
+            optimizer=torch.optim.Adam,
+        )
+
+    def get_data(self, test=False,
+                 variables=(DPK.WIND_65, DPK.TEMP_60_90, DPK.WIND_60)):
         """
-        Function to test the CNN.
+        Loads training or test data using DataManager class.
+
+        :param test: bool which indicates whether to get test dataset or
+        training dataset
+        :param variables: list of identifiers for the variables to be loaded
+        :return: (X,y): X is the design matrix for the training or test data
+        with type (np.float32). y is the list of labels for the data with type
+        (np.int6)
         """
-        # Device configuration
-        device = torch.device('cuda:' + os.getenv("CUDA_VISIBLE_DEVICES")
-                              if torch.cuda.is_available() else 'cpu')
 
-        test_loader = torch.utils.data.DataLoader(dataset=self.test_dataset,
-                                                  shuffle=False)
+        if test:
+            data_manager = self.data_manager_test
+        else:
+            data_manager = self.data_manager_train
 
-        self.model.eval()
+        X = data_manager.get_data_for_variables(variables)
+        y = np.any(data_manager.get_data_for_variable(definition),
+                   axis=1)
+        y = y.astype(np.int64)
+        X = X.astype(np.float32)
+        return X, y
 
-        with torch.no_grad():
-            correct = 0
-            total = 0
+    def cv_evaluate_simulated(self):
+        """
+        Evaluates performance on the simulated (training) data by using
+        cross-validation.
 
-            for winters, labels in test_loader:
-                winters = winters.to(device)
-                labels = labels.to(device)
+        :return: a tuple which consists of two lists:
+        a list of metrics which indicate performance of the
+        classifier which is trained on simulated data and evaluated on the
+        real data.
+        a list standard deviations of these metrics, estimated by
+        cross-validation.
+        """
 
-                outputs = self.model(winters)
-                _, predicted = torch.max(outputs.data, 1)
+        # We have an unbalanced dataset, so we stratify
+        cv = StratifiedKFold(self.cv_folds, shuffle=True)
+        X, y = self.get_data()
 
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+        scorers = {txt: make_scorer(metric) for txt, metric
+                   in zip(self.metric_txt, self.metrics)}
 
-            print('Test Accuracy of the model on the {} test winters: {} %'.
-                  format(len(test_loader.dataset), 100 * correct / total))
+        # Produce scores for all scoring metrics
+        scores = cross_validate(self.classifier, X, y, cv=cv,
+                                scoring=scorers)
+
+        # We only want to keep mean and std for each metric
+        scores_means = [np.mean(scores['test_' + score_type])
+                        for score_type in self.metric_txt]
+
+        scores_std = [np.std(scores['test_' + score_type])
+                      for score_type in self.metric_txt]
+
+        return scores_means, scores_std
+
+    def evaluate_real(self, train=True):
+        """
+        Evaluates the performance on the real (test) data.
+
+        :param train: bool which indicates whether to train the classifier
+        before evaluation
+        :return: a list of metrics which indicate performance of the
+        classifier which is trained on simulated data and evaluated on the
+        real data
+        """
+
+        if self.data_manager_test is None:
+            raise Exception("Data manager for the test dataset is not "
+                            "available, please initialize")
+
+        # Get train data
+        X, y = self.get_data()
+
+        if train is True:
+            self.classifier.fit(X, y)
+
+        # Get test data
+        X_test, y_test = self.get_data(test=True)
+
+        # Trim dataset so each winter will last for 210 days
+        X_test = X_test[:, :, :210]
+
+        # Predict real test dataset and evaulate
+        y_pred = self.classifier.predict(X_test)
+
+        scores = [metric(y_test, y_pred) for metric in self.metrics]
+
+        return scores
+
+    def write_output(self, scores, data_type):
+        """
+        Writes results by using utils.output_class.Output class
+
+        :param scores: a list of scores with order: [f1, auroc, accuracy]
+        :param data_type: a string to indicate the type of the data which is
+        evaluated. example: "real", "simulated"
+        """
+
+        # Write results to output file
+        output_default_args = dict(
+            classifier=self.model_class_name,
+            task=Task.classification,
+            data_type=data_type,
+            definition=self.definition,
+            cutoff_point="-",
+            feature_interval="-",
+            prediction_interval="-"
+        )
+
+        out_metrics = (
+            (Metric.f1, scores[0]),
+            (Metric.auroc, scores[1]),
+            (Metric.accuracy, scores[2])
+        )
+
+        for metric, score in out_metrics:
+            Output(
+                **output_default_args,
+                metric=metric,
+                scores=[score]
+            ).write_output()
+
+    def save_model(self):
+        """
+        Saves the CNN model (skorch.NeuralNetClassifier object). Uses
+        environment variable "CNN_WEIGHTS" as the directory and saves the
+        file with format
+        """
+        time_str = time.strftime("%Y%m%dT%H%M%S")
+        dir_output = os.getenv("CNN_WEIGHTS")
+
+        if dir_output is None:
+            print("Your output path is not set correctly. Please set the "
+                  "CNN_WEIGHTS env variable.")
+        else:
+            file_name = "{}-{}-{}.pkl".format(self.model_class_name,
+                                              self.definition, time_str)
+            path_output = os.path.join(dir_output, file_name)
+            self.classifier.save_params(f_params=path_output)
+
+    def load_model(self, path_in):
+        """
+        Loads the CNN model (skorch.NeuralNetClassifier object).
+
+        :param path_in: path to load the model
+        """
+        self.classifier.initialize()
+        self.classifier.load_params(f_params=path_in)
+
+
+def run_classification(path_train, definition, path_test, c_model_name,
+                       save=False):
+    """
+
+    :param path_train: path to the h5 file for the training dataset
+    (simulated data)
+    :param definition: Type of SSW definition to use. example: "CP07",
+    "U65"
+    :param path_test: path to the h5 file for the test dataset (real data)
+    :param c_model_name: CNN classifier name which is going to be used
+    example: "cnn", "cnn_max_pool"
+    :param save: bool which indicated whether to save the model after
+    evaluation or not
+    :return:
+    """
+    cl = CNNClassification(path_train, definition, path_test=path_test,
+                           c_model_name=c_model_name)
+
+    scores_sim, std_sim = cl.cv_evaluate_simulated()
+    scores_real = cl.evaluate_real()
+
+    print(scores_real)
+    print(scores_sim)
+
+    cl.write_output(scores_real, DataType.real)
+    cl.write_output(scores_sim, DataType.simulated)
+
+    if save:
+        cl.save_model()
+
+    return dict(scores_sim=scores_sim,
+                scores_real=scores_real,
+                std_sim=std_sim)
 
 
 if __name__ == '__main__':
     set_gpu()
+
+    # Path for training data
     path_preprocessed = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT")
-    filename = os.path.join(path_preprocessed, "data_labeled.h5")
+    path_train = os.path.join(path_preprocessed,
+                              "data_labeled.h5")
+
+    # Path for testing data
+    path_preprocessed_real = os.getenv("DSLAB_CLIMATE_BASE_OUTPUT_REAL")
+    path_test = os.path.join(path_preprocessed_real,
+                             "data_labeled.h5")
+
+    # Definitions to look
     definitions = [DPK.CP07, DPK.UT, DPK.U65]
 
+    # For each definition run classifier, get 5-fold CV result for simulated
+    # data. Also get test results.
     for definition in definitions:
-        classifier = ConvNetClassifier(filename, definition)
-        classifier.train(num_epochs=100, batch_size=8, learning_rate=0.0004)
-        classifier.test()
+        for c_model_name, c_model in cnn_model.get_cnn_classes().items():
+            run_classification(path_train, definition, path_test,
+                               c_model_name)
