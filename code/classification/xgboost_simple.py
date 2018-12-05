@@ -89,6 +89,35 @@ class ManualAndXGBoost:
         data = np.array(data)
         return data
 
+    def _construct_feature_keys(self, column_values):
+        """Get the column values of one of the variables and since they are the
+        same for all the variables because of tsfresh it expands the features
+        by prepending the name of the variable.
+        Parameters
+        ----------
+            column_values: list
+                A list with the values of the keys returned by tsfresh
+
+        Returns
+        -------
+            feature_keys: list
+                A list with the values of the keys for all the variables of
+                length len(column_values)*len(self.variables)
+        """
+        temp_feature_keys = column_values
+        keys_features_length = len(temp_feature_keys)
+        variables_length = len(self.variables)
+        feature_keys = []
+        for i in range(keys_features_length*variables_length):
+            quotient = int(i / keys_features_length)
+            feature_keys.append(
+                self.variables[quotient] + "_" +
+                temp_feature_keys[
+                     i-quotient*keys_features_length]
+                 )
+
+        return feature_keys
+
     def _produce_features(self, data):
         """
         Gets the data in the format [num_data*num_variables, len_winter] and by
@@ -116,39 +145,25 @@ class ManualAndXGBoost:
                                         'value': row})
             X = extract_features(for_tsfresh, column_id='id',
                                  column_sort='time')
-            # in the first iteration store the corresponding names of the the
-            # features as well. You have to expand the features for one
-            # variable to prepend the name of the variable and also do that
-            # for all the variables.
             if flag:
-                temp_feature_keys = X.columns.values
                 flag = False
-                self.feature_keys = []
-                keys_features_length = len(temp_feature_keys)
-                variables_length = len(self.variables)
-                for i in range(keys_features_length*variables_length):
-                    quotient = int(i / keys_features_length)
-                    self.feature_keys.append(
-                            self.variables[quotient] + "_" +
-                            temp_feature_keys[
-                                i-quotient*keys_features_length]
-                            )
+                self.feature_keys = self._construct_feature_keys(
+                        X.columns.values)
 
             features.append(X.values[0])
 
         # bring the features from format [num_data*num_features, len_winter] to
         # [num_data, num_features*len_winter]
-        new_features = []
         length = len(self.variables)
-        for i, feature in enumerate(features):
-            if i % length == 2:
-                new_features.append(np.concatenate((features[i],
-                                    features[i-1], features[i-2]),
-                                    axis=0))
+        new_features = [
+                np.concatenate((features[i], features[i-1],
+                                features[i-2]), axis=0)
+                for i, feature in enumerate(features)
+                if i % length == 2
+                ]
 
         features = new_features[:]
-        features = np.asarray(features)
-        return features
+        return np.asarray(features)
 
     def preprocess(self, path):
         """This function produces the features and the labels for the simulated
