@@ -187,8 +187,7 @@ class XGBoostPredict(ManualAndXGBoost):
 
     def train(self, X_train, y_train):
         """Trains an XGBoostClassifier by getting the training data from other
-        parts of the class. Also prints the three most important features for
-        the classification and plots them as a bar plot.
+        parts of the class.
 
         Parameters
         ----------
