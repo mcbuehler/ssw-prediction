@@ -157,7 +157,7 @@ class CNNClassification():
         # Get test data
         X_test, y_test = self.get_data(test=True)
 
-        # Trim dataset so each winter will last for 210 days
+        # Trim dataset so each winter will last 210 days
         X_test = X_test[:, :, :210]
 
         # Predict real test dataset and evaluate
@@ -169,7 +169,7 @@ class CNNClassification():
 
     def write_output(self, scores, data_type):
         """
-        Writes results by using utils.output_class.Output class
+        Writes results by using the utils.output_class.Output class
 
         :param scores: a list of scores with order: [f1, auroc, accuracy]
         :param data_type: a string to indicate the type of the data which is
@@ -276,8 +276,8 @@ if __name__ == '__main__':
     # Definitions to look
     definitions = [DPK.CP07, DPK.UT, DPK.U65]
 
-    # For each definition run classifier, get 5-fold CV result for simulated
-    # data. Also get test results.
+    # For each definition run a classifier, get 5-fold CV result for simulate
+    # data. Also get the test results.
     for definition in definitions:
         for c_model_name, c_model in cnn_model.get_cnn_classes().items():
             run_classification(path_train, definition, path_test,
