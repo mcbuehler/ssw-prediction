@@ -72,6 +72,7 @@ class XGBoostPredict(ManualAndXGBoost):
         X_train, X_test, y_train, y_test = train_test_split(
                         data, labels, test_size=0.2,
                         stratify=labels)
+        print(X_test.shape)
         X_train, y_train = ADASYN().fit_resample(X_train, y_train)
 
         return X_train, y_train, X_test, y_test
@@ -115,6 +116,7 @@ class XGBoostPredict(ManualAndXGBoost):
 
         # returns data in format (N, FC, D)
         data = self.prediction_set.get_features()
+        print(data.shape)
         X_train, y_train, X_test, y_test = \
             self._stack_variables_and_resample(data, labels)
         X_train = self._split_variables(X_train)
@@ -176,9 +178,37 @@ class XGBoostPredict(ManualAndXGBoost):
                 The trained model
         """
 
-        model = XGBClassifier(n_estimators=1000, max_depth=5, reg_alpha=0.1)
+        model = XGBClassifier(n_estimators=1000)
         model.fit(X_train, y_train)
         return model
+
+    def evaluate_simulated(self, X, y, scoring):
+        """Runs a dictionary of the scores of AUROC, Accuracy and F1-Score
+        on 5-CV of the data
+        Parameters
+        ----------
+            X: numpy array
+                The numpy array of the data with shape [num_data,
+                dimensionality]
+            y: numpy array
+                The numpy array of the labels with shape [num_data, 1]
+            scoring: dict
+                A dictionary that has a correspondence from the metrics that we
+                use in the output class to the one used by scikit-learn
+        Returns
+        -------
+            scores:
+                A python dict with the info provided by the cross_validate
+                function of scikit-learn
+        """
+        model = XGBClassifier(max_depth=5, n_estimators=1000,
+                              reg_alpha=0.1)
+
+        # this method will run 5 Stratified CV with a model initialized
+        # previously and a scoring dictionary that contains auroc, accuracy and
+        # f1 score
+        scores = cross_validate(model, X, y, cv=5, scoring=scoring)
+        return scores
 
     def test(self, model, X_test, y_test):
         """Returns the AUROC and F1 score of the model on the test set.
