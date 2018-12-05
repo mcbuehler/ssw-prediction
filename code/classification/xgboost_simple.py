@@ -87,7 +87,6 @@ class ManualAndXGBoost(FeatureEngineering):
                     data.append(temp_data[i, j])
 
         data = np.array(data)
-        data = data[:60]
         return data
 
     def preprocess(self, path):
