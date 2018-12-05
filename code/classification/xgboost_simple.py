@@ -1,21 +1,21 @@
 import numpy as np
-import pandas as pd
 import argparse
 import functools
+# import sys
 from core.data_manager import DataManager
 from preprocessing.dataset import DatapointKey as DK
-from tsfresh import extract_features
 from sklearn.model_selection import train_test_split, cross_validate
 from sklearn.metrics import (accuracy_score, make_scorer, f1_score,
                              roc_auc_score)
 from xgboost import XGBClassifier
 from matplotlib import pyplot
+from classification.feature_engineering import FeatureEngineering
 from utils.set_seed import SetSeed
 from utils.output_class import Output
 from utils.enums import Task, Classifier, DataType
 
 
-class ManualAndXGBoost:
+class ManualAndXGBoost(FeatureEngineering):
     """A class that receives as input the processed data and the definition that
     you want classification for and does classification using the XGBoost
     Classifier.
@@ -187,7 +187,8 @@ class ManualAndXGBoost:
         data_manager = DataManager(path)
         labels = self.__get_labels(data_manager)
         data = self._bring_data_to_format(data_manager)
-        features = self._produce_features(data)
+        self.feature_keys, features = super()._produce_features(
+                data, self.variables)
 
         return features, labels
 
@@ -373,8 +374,8 @@ if __name__ == '__main__':
                             features, labels, test_size=0.2,
                             stratify=labels)
             model = test.train(X_train, y_train)
-            score = test.test(model, X_test, y_test, accuracy_score)
-            print("Accuracy: %.2f%%" % (score * 100.0))
+            scores = test.test(model, X_test, y_test, scoring_real)
+            test.write_to_csv(DataType.simulated, scores)
             if args.plot:
                 test.plot(model)
         else:
