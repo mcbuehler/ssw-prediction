@@ -186,9 +186,11 @@ class ManualAndXGBoost(FeatureEngineering):
         pyplot.show()
 
     def test(self, model, X_test, y_test, scoring):
-        """Returns the accuracy of the model on the test set.
+        """Returns the scoring of the model on the test set.
         Parameters
         ----------
+            model: XGBClassifier class
+                A trained XGBClassifier model
             X_test: numpy array
                 The test split of the data features
             y_test: numpy array
@@ -196,7 +198,7 @@ class ManualAndXGBoost(FeatureEngineering):
 
         Returns
         -------
-            scores:
+            scoring:
                 A python dict with the scores in the same format like the
                 cross_validate function of scikit-learn
         """
@@ -207,8 +209,7 @@ class ManualAndXGBoost(FeatureEngineering):
             score['test_' + key] = [value(y_test, predictions)]
         return score
 
-    @staticmethod
-    def write_to_csv(datatype, scores):
+    def write_to_csv(self, task, datatype, scores):
         """Writes to the results.csv file. It accepts the scores as a dictionary
         returned by cross_validate and the datatype (real or simulated) and
         then initializes the Output class with the proper parameters in order
@@ -221,8 +222,8 @@ class ManualAndXGBoost(FeatureEngineering):
         """
         for key, value in scores.items():
             if key.startswith('test'):
-                results = Output(Classifier.xgboost, Task.classification,
-                                 datatype, args.definition, '-', '-', '-',
+                results = Output(Classifier.xgboost, task,
+                                 datatype, self.definition, '-', '-', '-',
                                  key.split('_')[1], value)
                 results.write_output()
 
@@ -305,10 +306,10 @@ if __name__ == '__main__':
                 test.plot(model)
         else:
             scores = test.evaluate_simulated(features, labels, scoring_sim)
-            test.write_to_csv(DataType.simulated, scores)
+            test.write_to_csv(DataType.simulated, Task.classification, scores)
     else:
         real_features, real_labels = test.preprocess(args.real_path)
         sim_features, sim_labels = test.preprocess(args.simulated_path)
         model = test.train(sim_features, sim_labels)
         scores = test.test(model, real_features, real_labels, scoring_real)
-        test.write_to_csv(DataType.real, scores)
+        test.write_to_csv(DataType.real, Task.classification, scores)
