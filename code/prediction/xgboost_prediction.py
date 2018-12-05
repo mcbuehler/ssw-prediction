@@ -146,8 +146,6 @@ class XGBoostPredict(ManualAndXGBoost):
 
         # returns data in format (N, FC, D)
         data = self.prediction_set.get_features()
-        data = data[:100]
-        labels = labels[:100]
         return data, labels
 
     def tune_classifier(self, X_train, y_train):
