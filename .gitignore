@@ -6,3 +6,4 @@ data/*
 .idea
 __pycache__
 pytorch_lstm.py
+xgboost_prediction.py

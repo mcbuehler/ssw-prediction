@@ -1,21 +1,21 @@
 import numpy as np
-import pandas as pd
 import argparse
 import functools
+# import sys
 from core.data_manager import DataManager
 from preprocessing.dataset import DatapointKey as DK
-from tsfresh import extract_features
 from sklearn.model_selection import train_test_split, cross_validate
 from sklearn.metrics import (accuracy_score, make_scorer, f1_score,
                              roc_auc_score)
 from xgboost import XGBClassifier
 from matplotlib import pyplot
+from classification.feature_engineering import FeatureEngineering
 from utils.set_seed import SetSeed
 from utils.output_class import Output
 from utils.enums import Task, Classifier, DataType
 
 
-class ManualAndXGBoost:
+class ManualAndXGBoost(FeatureEngineering):
     """A class that receives as input the processed data and the definition that
     you want classification for and does classification using the XGBoost
     Classifier.
@@ -89,67 +89,6 @@ class ManualAndXGBoost:
         data = np.array(data)
         return data
 
-    def _produce_features(self, data):
-        """
-        Gets the data in the format [num_data*num_variables, len_winter] and by
-        using tsfresh it produces a matrix [num_data,
-        tsfresh_features*num_features]. It also creates a list of
-        [tsfresh_features*num_features] to have the correspondence between the
-        initial variables and the features produced and saves that in a class
-        variable.
-
-        Returns
-        -------
-            features: np.array
-                A numpy array of size
-                [num_data, tsfresh_features*num_variables]
-        """
-        length = data.shape[1]
-        features = []
-        flag = True
-        # iterate though all the data points
-        for i, row in enumerate(data):
-            # bring them into the format the tsfresh wants them to compute the
-            # features
-            for_tsfresh = pd.DataFrame({'id': np.ones(length),
-                                        'time': np.arange(length),
-                                        'value': row})
-            X = extract_features(for_tsfresh, column_id='id',
-                                 column_sort='time')
-            # in the first iteration store the corresponding names of the the
-            # features as well. You have to expand the features for one
-            # variable to prepend the name of the variable and also do that
-            # for all the variables.
-            if flag:
-                temp_feature_keys = X.columns.values
-                flag = False
-                self.feature_keys = []
-                keys_features_length = len(temp_feature_keys)
-                variables_length = len(self.variables)
-                for i in range(keys_features_length*variables_length):
-                    quotient = int(i / keys_features_length)
-                    self.feature_keys.append(
-                            self.variables[quotient] + "_" +
-                            temp_feature_keys[
-                                i-quotient*keys_features_length]
-                            )
-
-            features.append(X.values[0])
-
-        # bring the features from format [num_data*num_features, len_winter] to
-        # [num_data, num_features*len_winter]
-        new_features = []
-        length = len(self.variables)
-        for i, feature in enumerate(features):
-            if i % length == 2:
-                new_features.append(np.concatenate((features[i],
-                                    features[i-1], features[i-2]),
-                                    axis=0))
-
-        features = new_features[:]
-        features = np.asarray(features)
-        return features
-
     def preprocess(self, path):
         """This function produces the features and the labels for the simulated
         data. In order to do that it uses other functions to produce the labels
@@ -172,7 +111,8 @@ class ManualAndXGBoost:
         data_manager = DataManager(path)
         labels = self.__get_labels(data_manager)
         data = self._bring_data_to_format(data_manager)
-        features = self._produce_features(data)
+        self.feature_keys, features = super()._produce_features(
+                data, self.variables)
 
         return features, labels
 
@@ -358,8 +298,9 @@ if __name__ == '__main__':
                             features, labels, test_size=0.2,
                             stratify=labels)
             model = test.train(X_train, y_train)
-            score = test.test(model, X_test, y_test, accuracy_score)
-            print("Accuracy: %.2f%%" % (score * 100.0))
+
+            scores = test.test(model, X_test, y_test, scoring_real)
+            test.write_to_csv(DataType.simulated, scores)
             if args.plot:
                 test.plot(model)
         else:
