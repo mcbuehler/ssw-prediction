@@ -5,6 +5,11 @@
 Default values for spaceml servers are given here:
 `scripts/load_environment_variables.sh`
 
+2. Copy the simulated and real data to the corresponding folders
+
+3. Run the preprocessing (see below)
+
+
 
 ## Preprocessing
 
@@ -13,8 +18,9 @@ How to run:
 `source scripts/load_environment_variables.sh`
 2. (Optional, depends on your configuration) Load your python virtual environment:
 `source YOUR_ENV/bin/activate`
-3. Run the preprocessing script:
+3. Run the preprocessing scripts for both the simulated and real data:
 `python code/run_preprocessing.py`
+`python code/run_preprocessing_real.py`
 4. Run the labeling script:
 `python code/run_label_generation.py`
 
