@@ -5,13 +5,13 @@ import os
 
 def run_experiment_grid_prediction():
     n_bins = 20
-    n_estimators = 2#10000
+    n_estimators = 10000
     input_path_sim = os.getenv("DSLAB_CLIMATE_LABELED_DATA")
 
     definitions = [DK.CP07, DK.UT, DK.U65]
     cutoff_points = [90, 120]
     feature_intervals = [7, 14, 21, 28]
-    prediction_intervals = [1, 2, 3, 4]
+    prediction_intervals = [7, 14, 21, 28]
 
     # Evaluate for simulated data only
     for definition in definitions:
@@ -38,7 +38,7 @@ def run_experiment_grid_prediction():
                         prediction_interval=prediction
                     )
 
-                    model.evaluate(plot=False)
+                    #model.evaluate(plot=False)
 
 
 if __name__ == '__main__':
