@@ -16,7 +16,7 @@ import matplotlib.pyplot as ply
 from prediction.base_model import PredictionBaseModel
 
 from utils.set_seed import SetSeed
-from utils.logging import get_logger
+from utils.dslab_logging import get_logger
 from utils.output_class import Output
 
 

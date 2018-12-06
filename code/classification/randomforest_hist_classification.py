@@ -11,7 +11,7 @@ from core.data_manager import DataManager
 import os
 import numpy as np
 import matplotlib.pyplot as ply
-from utils.logging import get_logger
+from utils.dslab_logging import get_logger
 from utils.output_class import Output
 from utils.set_seed import SetSeed
 from utils.enums import Classifier, Task, Metric, DataType
