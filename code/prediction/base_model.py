@@ -28,19 +28,12 @@ class PredictionBaseModel:
 
         self.prediction_set = self._get_prediction_set()
 
-        self.X = None
-        self.y = None
-
-        self.ready = False
-
-        self._prepare()
-
     def _get_prediction_set(self):
         prediction_set = FixedWindowPredictionSet(
             definition=self.definition,
             path=self.path,
             cutoff_point=self.cutoff_point,
-            prediction_week=self.prediction_weeks,
+            prediction_interval=self.prediction_weeks,
             feature_interval=self.features_interval
         )
         return prediction_set
