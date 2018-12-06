@@ -22,7 +22,7 @@ class XGBoostPredict(ManualAndXGBoost):
     """
 
     def __init__(self, definition, cutoff_point, features_interval,
-                 prediction_interval):
+                 week_interval):
         """The constructor of the XGBoostPredict class
         Parameters
         ----------
@@ -34,12 +34,12 @@ class XGBoostPredict(ManualAndXGBoost):
                 The number of days in the past that you will look the time
                 series before the cutoff_point
             prediction_interval: int
-                The interval that you will predict in the future
+                The week that you will predict in the future
         """
         self.definition = definition
         self.cutoff_point = cutoff_point
         self.features_interval = features_interval
-        self.prediction_interval = prediction_interval
+        self.week_interval = week_interval
 
         # set the seed for all the libraries
         SetSeed().set_seed()
@@ -125,8 +125,8 @@ class XGBoostPredict(ManualAndXGBoost):
             features_interval: int
                 The number of days in the past that you will look the time
                 series before the cutoff_point
-            prediction_interval: int
-                The interval that you will predict in the future
+            week_interval: int
+                The week interval that you will predict in the future
         Returns
         -------
             data: numpy array
@@ -139,7 +139,7 @@ class XGBoostPredict(ManualAndXGBoost):
                 self.definition,
                 path,
                 self.cutoff_point,
-                self.prediction_interval,
+                self.week_interval,
                 self.features_interval)
 
         labels = np.ravel(self.prediction_set.get_labels())
@@ -287,7 +287,7 @@ class XGBoostPredict(ManualAndXGBoost):
                 results = Output(Classifier.xgboost, Task.prediction,
                                  datatype, self.definition, self.cutoff_point,
                                  self.features_interval,
-                                 self.prediction_interval,
+                                 self.week_interval,
                                  key.split('_')[1], value)
                 results.write_output()
 
@@ -351,9 +351,9 @@ if __name__ == "__main__":
             default=30
             )
     parser.add_argument(
-            "-pi",
-            "--prediction_interval",
-            help="Choose the max prediction interval",
+            "-wi",
+            "--week_interval",
+            help="Choose the week you are going to make predictions for",
             type=int,
             action="store",
             default=5
@@ -368,7 +368,7 @@ if __name__ == "__main__":
             definition=args.definition,
             cutoff_point=args.cutoff_point,
             features_interval=args.features_interval,
-            prediction_interval=args.prediction_interval
+            week_interval=args.week_interval
             )
     if args.data_type == 'sim':
         data, labels = test.get_data_and_labels(args.simulated_path)
