@@ -12,8 +12,10 @@ class Output:
     tasks = ['prediction', 'classification']
     data_types = ['real', 'simulated']
 
-    def __init__(self, classifier, task, data_type, definition, cutoff_point,
-                 feature_interval, prediction_interval, metric, scores,
+    def __init__(self, classifier, task, data_type, definition,
+                 cutoff_point='-',
+                 feature_interval='-', prediction_interval='-', metric=None,
+                 scores=None,
                  path=None):
         """Constructor of the output class
 
@@ -30,13 +32,13 @@ class Output:
         :scores: The scores of the experiment as a python list
         """
         assert task in self.tasks, (
-                "The available tasks are 'prediction' and 'classification'")
+            "The available tasks are 'prediction' and 'classification'")
         assert data_type in self.data_types, (
-                "The available data types are 'real' and 'simulated'")
+            "The available data types are 'real' and 'simulated'")
         assert definition in self.definitions, (
-                "The available definitions are 'CP07', 'U&T', 'U65'")
+            "The available definitions are 'CP07', 'U&T', 'U65'")
         assert metric in self.metrics, (
-                "The available metrics are 'accuracy','auroc', 'f1'")
+            "The available metrics are 'accuracy','auroc', 'f1'")
 
         self.classifier = classifier
         self.task = task
@@ -64,20 +66,20 @@ class Output:
         scores = ','.join(str(e) for e in self.scores)
         ts = time.ctime()
         label = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
+            ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
         output_string = "{},{},{},{},{},{},{},{},{},{},{}\n".format(
-                ts,
-                label,
-                self.classifier,
-                self.task,
-                self.data_type,
-                self.definition,
-                self.cutoff_point,
-                self.feature_interval,
-                self.prediction_interval,
-                self.metric,
-                scores
-                )
+            ts,
+            label,
+            self.classifier,
+            self.task,
+            self.data_type,
+            self.definition,
+            self.cutoff_point,
+            self.feature_interval,
+            self.prediction_interval,
+            self.metric,
+            scores
+        )
         with open(self.path, 'a') as csv_file:
             csv_file.write(output_string)
 
@@ -85,5 +87,5 @@ class Output:
 if __name__ == "__main__":
     test = Output(Classifier.xgboost, Task.prediction,
                   DataType.simulated, DatapointKey.CP07, 120,
-                  60, 30, Metric.auroc, 5*[0.78])
+                  60, 30, Metric.auroc, 5 * [0.78])
     test.write_output()

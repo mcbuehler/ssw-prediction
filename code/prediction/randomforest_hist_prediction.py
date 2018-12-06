@@ -4,16 +4,24 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
     accuracy_score
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, \
+    cross_validate
 from sklearn.pipeline import Pipeline
 
 from preprocessing.dataset import DatapointKey as DK
+from utils.enums import Classifier, Task, Metric, DataType
 import os
 import numpy as np
 import matplotlib.pyplot as ply
 from prediction.base_model import PredictionBaseModel
 
-np.random.seed(42)
+from utils.set_seed import SetSeed
+from utils.logging import get_logger
+from utils.output_class import Output
+
+
+SetSeed().set_seed()
+logger = get_logger()
 
 
 class HistogramTransformer(BaseEstimator, TransformerMixin):
@@ -82,6 +90,8 @@ class RandomForestPrediction(PredictionBaseModel):
         self.n_bins = n_bins
 
         self.metrics = [f1_score, roc_auc_score, accuracy_score]
+        self.metric_txt = ["F1", "ROCAUC", "Accuracy"]
+
         self.classifier = RandomForestClassifier(n_estimators=n_estimators)
 
     def evaluate(self, plot=False):
@@ -109,19 +119,22 @@ class RandomForestPrediction(PredictionBaseModel):
         pipeline = Pipeline(steps)
 
         # Get the raw data for the features
-        data_features = self.prediction_set.get_features()
+        raw_data_train = self.prediction_set.get_features()
         # Bring labels in correct format
-        labels = self.prediction_set.get_labels().ravel()
+        labels_train = self.prediction_set.get_labels().ravel()
 
         # We have an unbalanced dataset, so we stratify
         cv = StratifiedKFold(self.cv_folds, shuffle=True)
 
+        logger.info("Scoring for {} metrics...".format(len(self.metrics)))
         # Produce scores for all scoring metrics
-        scores = [
-            cross_val_score(pipeline, data_features, labels, cv=cv,
-                            scoring=make_scorer(metric))
-            for metric in self.metrics
-        ]
+        scorers = {txt: make_scorer(metric) for txt, metric in
+                   zip(self.metric_txt, self.metrics)}
+        scores = cross_validate(pipeline, raw_data_train, labels_train, cv=cv,
+                                scoring=scorers)
+        # cross_validate returns dict.
+        # Extract test scores
+        scores = [scores['test_{}'.format(txt)] for txt in self.metric_txt]
 
         # We only want to keep mean and std for each metric
         scores_means = [np.mean(score) for score in scores]
@@ -129,6 +142,26 @@ class RandomForestPrediction(PredictionBaseModel):
 
         if plot:
             self.plot(scores_means, scores_std)
+
+        # Write results to output file
+        output_default_args = dict(
+            classifier=Classifier.randomforest,
+            task=Task.prediction,
+            data_type=DataType.simulated,
+            definition=self.definition
+        )
+
+        out_metrics = (
+            (Metric.f1, scores[0]),
+            (Metric.auroc, scores[1]),
+            (Metric.accuracy, scores[2])
+        )
+        for metric, score in out_metrics:
+            Output(
+                **output_default_args,
+                metric=metric,
+                scores=score
+            ).write_output()
 
         return scores_means, scores_std
 
@@ -186,7 +219,7 @@ if __name__ == '__main__':
     model = RandomForestPrediction(
         definition=args.definition,
         path=args.input_path,
-        n_bins=100,
+        n_bins=20,
         n_estimators=1000
     )
 
