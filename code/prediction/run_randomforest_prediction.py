@@ -5,7 +5,7 @@ import os
 
 def run_experiment_grid_prediction():
     n_bins = 20
-    n_estimators = 10000
+    n_estimators = 1000
     input_path_sim = os.getenv("DSLAB_CLIMATE_LABELED_DATA")
 
     definitions = [DK.CP07, DK.UT, DK.U65]
@@ -23,11 +23,11 @@ def run_experiment_grid_prediction():
                           "cutoff {}, "
                           "feature {}, "
                           "prediction {}".format(
-                        definition,
-                        cutoff,
-                        feature,
-                        prediction)
-                    )
+                            definition,
+                            cutoff,
+                            feature,
+                            prediction))
+
                     model = RandomForestPrediction(
                         definition=definition,
                         path=input_path_sim,

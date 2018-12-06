@@ -1,4 +1,5 @@
-from classification.randomforest_hist_classification import RandomForestClassification
+from classification.randomforest_hist_classification import \
+    RandomForestClassification
 from preprocessing.dataset import DatapointKey as DK
 import os
 
