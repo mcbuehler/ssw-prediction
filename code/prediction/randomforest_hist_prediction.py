@@ -72,7 +72,7 @@ class RandomForestPrediction(PredictionBaseModel):
     """
 
     def __init__(self, definition, path, cutoff_point=90,
-                 prediction_weeks=3, features_interval=30, cv_folds=5,
+                 prediction_interval=7, features_interval=7, cv_folds=5,
                  n_bins=100, n_estimators=100):
         """
         Parameters
@@ -89,7 +89,7 @@ class RandomForestPrediction(PredictionBaseModel):
 
         """
         super().__init__(definition, path, cutoff_point=cutoff_point,
-                         prediction_weeks=prediction_weeks,
+                         prediction_interval=prediction_interval,
                          features_interval=features_interval,
                          cv_folds=cv_folds)
         self.n_bins = n_bins
@@ -225,7 +225,10 @@ if __name__ == '__main__':
         definition=args.definition,
         path=args.input_path,
         n_bins=20,
-        n_estimators=1000
+        n_estimators=1000,
+        cutoff_point=90,
+        features_interval=7,
+        prediction_interval=7
     )
 
     print(model.evaluate(plot=False))

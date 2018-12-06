@@ -6,7 +6,7 @@ class PredictionBaseModel:
     """
 
     def __init__(self, definition, path, cutoff_point=90,
-                 prediction_weeks=2, features_interval=30, cv_folds=5):
+                 prediction_interval=2, features_interval=30, cv_folds=5):
 
         """
         Parameters
@@ -23,7 +23,7 @@ class PredictionBaseModel:
         self.cv_folds = cv_folds
 
         self.cutoff_point = cutoff_point
-        self.prediction_weeks = prediction_weeks
+        self.prediction_interval = prediction_interval
         self.features_interval = features_interval
 
         self.prediction_set = self._get_prediction_set()
@@ -33,7 +33,7 @@ class PredictionBaseModel:
             definition=self.definition,
             path=self.path,
             cutoff_point=self.cutoff_point,
-            prediction_interval=self.prediction_weeks,
+            prediction_interval=self.prediction_interval,
             feature_interval=self.features_interval
         )
         return prediction_set

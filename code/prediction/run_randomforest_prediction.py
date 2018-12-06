@@ -35,7 +35,7 @@ def run_experiment_grid_prediction():
                         n_estimators=n_estimators,
                         cutoff_point=cutoff,
                         features_interval=feature,
-                        prediction_weeks=prediction
+                        prediction_interval=prediction
                     )
 
                     model.evaluate(plot=False)

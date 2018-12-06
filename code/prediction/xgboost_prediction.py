@@ -22,7 +22,7 @@ class XGBoostPredict(ManualAndXGBoost):
     """
 
     def __init__(self, definition, cutoff_point, features_interval,
-                 week_interval):
+                 prediction_interval):
         """The constructor of the XGBoostPredict class
         Parameters
         ----------
@@ -39,7 +39,7 @@ class XGBoostPredict(ManualAndXGBoost):
         self.definition = definition
         self.cutoff_point = cutoff_point
         self.features_interval = features_interval
-        self.week_interval = week_interval
+        self.prediction_interval = prediction_interval
 
         # set the seed for all the libraries
         SetSeed().set_seed()
@@ -139,7 +139,7 @@ class XGBoostPredict(ManualAndXGBoost):
                 self.definition,
                 path,
                 self.cutoff_point,
-                self.week_interval,
+                self.prediction_interval,
                 self.features_interval)
 
         labels = np.ravel(self.prediction_set.get_labels())
@@ -287,7 +287,7 @@ class XGBoostPredict(ManualAndXGBoost):
                 results = Output(Classifier.xgboost, Task.prediction,
                                  datatype, self.definition, self.cutoff_point,
                                  self.features_interval,
-                                 self.week_interval,
+                                 self.prediction_interval,
                                  key.split('_')[1], value)
                 results.write_output()
 
@@ -368,7 +368,7 @@ if __name__ == "__main__":
             definition=args.definition,
             cutoff_point=args.cutoff_point,
             features_interval=args.features_interval,
-            week_interval=args.week_interval
+            prediction_interval=args.week_interval
             )
     if args.data_type == 'sim':
         data, labels = test.get_data_and_labels(args.simulated_path)
