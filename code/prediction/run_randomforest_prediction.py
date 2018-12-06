@@ -38,7 +38,7 @@ def run_experiment_grid_prediction():
                         prediction_interval=prediction
                     )
 
-                    #model.evaluate(plot=False)
+                    model.evaluate(plot=False)
 
 
 if __name__ == '__main__':
