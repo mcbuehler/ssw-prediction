@@ -69,7 +69,7 @@ class FeatureEngineering:
                 for_tsfresh = pd.concat([for_tsfresh, temp_df], axis=1)
 
         X = extract_features(for_tsfresh, column_id='id',
-                             column_sort='time', n_jobs=40)
+                             column_sort='time', n_jobs=16)
         features = np.zeros((data.shape[0], self.tsfresh_num_features))
         for i in range(0, data.shape[0]):
             for j in range(0, self.tsfresh_num_features):
