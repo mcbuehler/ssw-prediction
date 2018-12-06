@@ -71,7 +71,9 @@ class RandomForestPrediction(PredictionBaseModel):
     Classifier.
     """
 
-    def __init__(self, definition, path, n_bins=100, n_estimators=100):
+    def __init__(self, definition, path, cutoff_point=90,
+                 prediction_interval=30, features_interval=30, cv_folds=5,
+                 n_bins=100, n_estimators=100):
         """
         Parameters
         ----------
@@ -86,7 +88,10 @@ class RandomForestPrediction(PredictionBaseModel):
                 number of estimators to use in the RandomForestClassifier
 
         """
-        super().__init__(definition, path)
+        super().__init__(definition, path, cutoff_point=cutoff_point,
+                         prediction_interval=prediction_interval,
+                         features_interval=features_interval,
+                         cv_folds=cv_folds)
         self.n_bins = n_bins
 
         self.metrics = [f1_score, roc_auc_score, accuracy_score]
