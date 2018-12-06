@@ -8,5 +8,9 @@ __pycache__
 
 notebooks/.ipynb_checkpoints/
 pytorch_lstm.py
+<<<<<<< HEAD
 pretrained_models
 model_manager.py
+=======
+xgboost_prediction.py
+>>>>>>> master
