@@ -199,7 +199,8 @@ class XGBoostPredict(ManualAndXGBoost):
                 The trained model
         """
 
-        model = XGBClassifier(n_estimators=1000, max_depth=5, reg_alpha=0.1)
+        model = XGBClassifier(n_estimators=1000, max_depth=5, reg_alpha=0.1,
+                              n_jobs=16)
         model.fit(X_train, y_train)
         return model
 
