@@ -157,9 +157,6 @@ class CNNClassification():
         # Get test data
         X_test, y_test = self.get_data(test=True)
 
-        # Trim dataset so each winter will last 210 days
-        X_test = X_test[:, :, :210]
-
         # Predict real test dataset and evaluate
         y_pred = self.classifier.predict(X_test)
 
