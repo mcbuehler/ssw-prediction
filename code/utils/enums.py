@@ -17,6 +17,7 @@ class Classifier:
     cnn = "cnn"
     rnn = "rnn"
     randomforest = "randomforest"
+    cnn_max_pool = "cnn_max_pool"
 
 
 class DataType:
