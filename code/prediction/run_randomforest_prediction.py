@@ -18,8 +18,6 @@ def run_experiment_grid_prediction():
     prediction_intervals = [7, 14, 21, 28]
     prediction_start_days = [0, 7, 14, 21]
 
-    n_skipped = 0
-
     # Evaluate for simulated data only
     for definition in definitions:
         for cutoff in cutoff_points:
@@ -48,15 +46,7 @@ def run_experiment_grid_prediction():
                             prediction_start_day=start_day,
                             prediction_interval=prediction
                         )
-                        try:
-                            model.evaluate(plot=False)
-                        except UndefinedMetricWarning as e:
-                            n_skipped += 1
-                            logging.warning("Undefined metric.")
-                            logging.info("Skipped example. "
-                                         "Totally skipped: {}"
-                                         .format(n_skipped))
-
+                        model.evaluate(plot=False)
 
 if __name__ == '__main__':
     run_experiment_grid_prediction()

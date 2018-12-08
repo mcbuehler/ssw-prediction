@@ -1,8 +1,10 @@
 import argparse
+import warnings
 
 from imblearn.over_sampling import ADASYN
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
     accuracy_score
 from sklearn.model_selection import StratifiedKFold, \
@@ -161,6 +163,10 @@ class RandomForestPrediction(PredictionBaseModel):
             pred = model.predict(X_test)
             for i, metric in enumerate(self.metrics):
                 score = metric(y_test, pred)
+                # Some metrics (e.g. F1) might not be computable, e.g.
+                # if the model always predicts 0.
+                # In that case we write a np.nan
+                score = np.nan if score == 0 else score
                 scores[self.metric_txt[i]].append(score)
 
         print(scores)
@@ -258,7 +264,7 @@ if __name__ == '__main__':
         n_estimators=100,
         cutoff_point=90,
         features_interval=21,
-        prediction_interval=14,
+        prediction_interval=7,
         prediction_start_day=7
     )
 
