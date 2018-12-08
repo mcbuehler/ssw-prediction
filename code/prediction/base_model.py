@@ -1,11 +1,20 @@
 from prediction.prediction_set import FixedWindowPredictionSet
+from imblearn.over_sampling import ADASYN
 
 
 class PredictionBaseModel:
     """Inherit from this class to create your own PredictionModels.
     """
 
-    def __init__(self, definition, path):
+    def __init__(self,
+                 definition,
+                 path,
+                 cutoff_point=90,
+                 prediction_start_day=7,
+                 prediction_interval=7,
+                 features_interval=30,
+                 cv_folds=5):
+
         """
         Parameters
         ----------
@@ -18,35 +27,46 @@ class PredictionBaseModel:
         self.path = path
         self.definition = definition
 
-        self.cutoff_point = 100
-        self.prediction_interval = 50
-        self.features_interval = 30
+        self.cv_folds = cv_folds
 
-        self.X = None
-        self.y = None
+        self.cutoff_point = cutoff_point
+        self.prediction_start_day = prediction_start_day
+        self.prediction_interval = prediction_interval
+        self.features_interval = features_interval
 
-        self.ready = False
+        self.prediction_set = self._get_prediction_set()
 
-        self._prepare()
-
-    def _prepare(self):
-        """
-        Runs all the computations to get this instance ready for evaluation.
-        For example, you can initialise self.X and self.y here.
-        """
+    def _get_prediction_set(self):
         prediction_set = FixedWindowPredictionSet(
             definition=self.definition,
             path=self.path,
             cutoff_point=self.cutoff_point,
+            prediction_start_day=self.prediction_start_day,
             prediction_interval=self.prediction_interval,
             feature_interval=self.features_interval
         )
-        features = prediction_set.get_features()
-        labels = prediction_set.get_labels()
-        self.X = self._produce_features(features)
-        self.y = self._produce_labels(labels)
+        return prediction_set
 
-        self.ready = True
+    def _resample(self, data, labels):
+        """Resamples the data using the ADASYN algorithm.
+        Parameters
+        ----------
+            data: numpy array
+                An array of the form [num_data, variable_count*dimensionality]
+            labels: numpy array
+                An array of the form [num_data, 1]
+        Returns
+        -------
+            X_train: numpy array
+                An array of the form [num_resampled_data*variable_count,
+                dimensionality]
+            y_train: numpy array
+                An array of the form [num_resampled_data, 1]
+        """
+        X_train, y_train = ADASYN(n_neighbors=20, n_jobs=4).\
+            fit_resample(data, labels)
+
+        return X_train, y_train
 
     def _produce_features(self, data):
         """
