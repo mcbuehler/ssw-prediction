@@ -13,7 +13,8 @@ class Output:
     data_types = ['real', 'simulated']
 
     def __init__(self, classifier, task, data_type, definition, cutoff_point,
-                 feature_interval, prediction_interval, metric, scores,
+                 feature_interval='-', prediction_start_day='-',
+                 prediction_interval='-', metric='-', scores='-',
                  path=None):
         """Constructor of the output class
 
@@ -44,6 +45,7 @@ class Output:
         self.definition = definition
         self.cutoff_point = cutoff_point
         self.feature_interval = feature_interval
+        self.prediction_start_day = prediction_start_day
         self.prediction_interval = prediction_interval
         self.metric = metric
         self.scores = scores
@@ -65,7 +67,7 @@ class Output:
         ts = time.ctime()
         label = subprocess.check_output(
                 ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
-        output_string = "{},{},{},{},{},{},{},{},{},{},{}\n".format(
+        output_string = "{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
                 ts,
                 label,
                 self.classifier,
@@ -74,6 +76,7 @@ class Output:
                 self.definition,
                 self.cutoff_point,
                 self.feature_interval,
+                self.prediction_start_day,
                 self.prediction_interval,
                 self.metric,
                 scores
@@ -85,5 +88,5 @@ class Output:
 if __name__ == "__main__":
     test = Output(Classifier.xgboost, Task.prediction,
                   DataType.simulated, DatapointKey.CP07, 120,
-                  60, 30, Metric.auroc, 5*[0.78])
+                  60, 30, 7, Metric.auroc, 5*[0.78])
     test.write_output()
