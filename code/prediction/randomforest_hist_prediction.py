@@ -179,7 +179,11 @@ class RandomForestPrediction(PredictionBaseModel):
             classifier=Classifier.randomforest,
             task=Task.prediction,
             data_type=DataType.simulated,
-            definition=self.definition
+            definition=self.definition,
+            cutoff_point=self.cutoff_point,
+            feature_interval=self.features_interval,
+            prediction_start_day=self.prediction_start_day,
+            prediction_interval=self.prediction_interval
         )
 
         out_metrics = (
