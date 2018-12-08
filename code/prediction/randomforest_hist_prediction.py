@@ -73,10 +73,16 @@ class RandomForestPrediction(PredictionBaseModel):
     Classifier.
     """
 
-    def __init__(self, definition, path, cutoff_point=90,
+    def __init__(self,
+                 definition,
+                 path,
+                 cutoff_point=90,
+                 prediction_interval=7,
                  prediction_start_day=7,
-                 prediction_interval=7, features_interval=7, cv_folds=5,
-                 n_bins=100, n_estimators=100):
+                 features_interval=7,
+                 cv_folds=5,
+                 n_bins=100,
+                 n_estimators=100):
         """
         Parameters
         ----------
@@ -92,8 +98,8 @@ class RandomForestPrediction(PredictionBaseModel):
 
         """
         super().__init__(definition, path, cutoff_point=cutoff_point,
-                         prediction_start_day=prediction_start_day,
                          prediction_interval=prediction_interval,
+                         prediction_start_day=prediction_start_day,
                          features_interval=features_interval,
                          cv_folds=cv_folds)
         self.n_bins = n_bins

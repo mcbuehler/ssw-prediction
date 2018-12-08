@@ -39,6 +39,7 @@ def run_experiment_grid_prediction():
                             n_estimators=n_estimators,
                             cutoff_point=cutoff,
                             features_interval=feature,
+                            prediction_start_day=start_day,
                             prediction_interval=prediction
                         )
 
