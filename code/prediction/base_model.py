@@ -1,4 +1,5 @@
 from prediction.prediction_set import FixedWindowPredictionSet
+from imblearn.over_sampling import ADASYN
 
 
 class PredictionBaseModel:
@@ -37,6 +38,26 @@ class PredictionBaseModel:
             feature_interval=self.features_interval
         )
         return prediction_set
+
+    def _resample(self, data, labels):
+        """Resamples the data using the ADASYN algorithm.
+        Parameters
+        ----------
+            data: numpy array
+                An array of the form [num_data, variable_count*dimensionality]
+            labels: numpy array
+                An array of the form [num_data, 1]
+        Returns
+        -------
+            X_train: numpy array
+                An array of the form [num_resampled_data*variable_count,
+                dimensionality]
+            y_train: numpy array
+                An array of the form [num_resampled_data, 1]
+        """
+        X_train, y_train = ADASYN(n_neighbors=20, n_jobs=4).fit_resample(data, labels)
+
+        return X_train, y_train
 
     def _produce_features(self, data):
         """

@@ -1,12 +1,14 @@
 import argparse
 
+from imblearn.over_sampling import ADASYN
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
     accuracy_score
 from sklearn.model_selection import StratifiedKFold, \
     cross_validate
-from sklearn.pipeline import Pipeline
+# from sklearn.pipeline import Pipeline
+from imblearn.pipeline import Pipeline
 
 from preprocessing.dataset import DatapointKey as DK
 from utils.enums import Classifier, Task, Metric, DataType
@@ -117,29 +119,45 @@ class RandomForestPrediction(PredictionBaseModel):
         # We create a pipeline in order to apply the same independent
         # preprocessing steps to all folds in the cross-validation
         feature_extraction = HistogramTransformer(n_bins=self.n_bins)
-        steps = [
-            ('feature_extraction', feature_extraction),
-            ('model', self.classifier)
-        ]
-        pipeline = Pipeline(steps)
 
         # Get the raw data for the features
-        raw_data_train = self.prediction_set.get_features()
+        X = self.prediction_set.get_features()
         # Bring labels in correct format
-        labels_train = self.prediction_set.get_labels().ravel()
+        y = self.prediction_set.get_labels().ravel()
 
         # We have an unbalanced dataset, so we stratify
         cv = StratifiedKFold(self.cv_folds, shuffle=True)
 
         logger.info("Scoring for {} metrics...".format(len(self.metrics)))
-        # Produce scores for all scoring metrics
-        scorers = {txt: make_scorer(metric) for txt, metric in
-                   zip(self.metric_txt, self.metrics)}
-        scores = cross_validate(pipeline, raw_data_train, labels_train, cv=cv,
-                                scoring=scorers)
-        # cross_validate returns dict.
-        # Extract test scores
-        scores = [scores['test_{}'.format(txt)] for txt in self.metric_txt]
+
+        # We keep scores in a dict instead of a list to have more semantics
+        scores = {txt: list() for txt in self.metric_txt}
+
+        for train_index, test_index in cv.split(X, y):
+            # Create train / test splits
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+
+            # Extract histogram features
+            X_train = feature_extraction.fit_transform(X_train)
+            X_test = feature_extraction.fit_transform(X_test)
+
+            # We only resample the training data
+            X_train, y_train = self._resample(X_train, y_train)
+
+            # Train model
+            model = self.classifier
+            model.fit(X_train, y_train)
+
+            # Evaluate model
+            pred = model.predict(X_test)
+            for i, metric in enumerate(self.metrics):
+                score = metric(y_test, pred)
+                scores[self.metric_txt[i]].append(score)
+
+        print(scores)
+        scores = [scores[txt] for txt in self.metric_txt]
+
 
         # We only want to keep mean and std for each metric
         scores_means = [np.mean(score) for score in scores]
@@ -225,10 +243,10 @@ if __name__ == '__main__':
         definition=args.definition,
         path=args.input_path,
         n_bins=20,
-        n_estimators=1000,
+        n_estimators=100,
         cutoff_point=90,
-        features_interval=7,
-        prediction_interval=7
+        features_interval=21,
+        prediction_interval=14
     )
 
     print(model.evaluate(plot=False))
