@@ -129,7 +129,11 @@ class FixedWindowPredictionSet(PredictionSetBase):
             prediction_start_day: int
                 the day where you want to make predictions for after the
                 cutoff_point
+<<<<<<< HEAD
             prediction_start_day: int
+=======
+            prediction_interval: int
+>>>>>>> xgboost-pred
                 the interval where you will make predictions for
             feature_interval: int
                 the interval where you will extract features from
