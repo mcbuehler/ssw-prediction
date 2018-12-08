@@ -1,3 +1,7 @@
+import logging
+
+from sklearn.exceptions import UndefinedMetricWarning
+
 from prediction.randomforest_hist_prediction import RandomForestPrediction
 from preprocessing.dataset import DatapointKey as DK
 import os
@@ -13,6 +17,8 @@ def run_experiment_grid_prediction():
     feature_intervals = [7, 14, 21, 28]
     prediction_intervals = [7, 14, 21, 28]
     prediction_start_days = [0, 7, 14, 21]
+
+    n_skipped = 0
 
     # Evaluate for simulated data only
     for definition in definitions:
@@ -42,8 +48,14 @@ def run_experiment_grid_prediction():
                             prediction_start_day=start_day,
                             prediction_interval=prediction
                         )
-
-                        model.evaluate(plot=False)
+                        try:
+                            model.evaluate(plot=False)
+                        except UndefinedMetricWarning as e:
+                            n_skipped += 1
+                            logging.warning("Undefined metric.")
+                            logging.info("Skipped example. "
+                                         "Totally skipped: {}"
+                                         .format(n_skipped))
 
 
 if __name__ == '__main__':
