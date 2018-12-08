@@ -1,1 +1,1 @@
-Time,Commit_hash,Classifier,Task,Data_type,Definition,Cutoff_point,Feature_interval,Prediction_interval,Metric,Result
+Time,Commit_hash,Classifier,Task,Data_type,Definition,Cutoff_point,Feature_interval,Prediction_start_day,Prediction_interval,Metric,Result
