@@ -12,3 +12,5 @@ export DSLAB_CLIMATE_BASE_OUTPUT_REAL=/mnt/ds3lab-scratch/climate/preprocessed_r
 export DSLAB_CLIMATE_LABELED_REAL_DATA=/mnt/ds3lab-scratch/climate/preprocessed_real_output/data_labeled.h5
 
 export DSLAB_RESULT_FILE=/mnt/ds3lab-scratch/climate/results/results.csv
+
+export CNN_WEIGHTS=/mnt/ds3lab-scratch/climate/models/
