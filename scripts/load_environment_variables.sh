@@ -9,7 +9,8 @@ export DSLAB_LIMIT=-1
 
 export DSLAB_CLIMATE_BASE_INPUT_REAL=/mnt/ds3lab-scratch/dslab2018/bernatj/reanalysis/JRA-55
 export DSLAB_CLIMATE_BASE_OUTPUT_REAL=/mnt/ds3lab-scratch/climate/preprocessed_real_output
-export DSLAB_CLIMATE_LABELED_DATA_REAL=/mnt/ds3lab-scratch/climate/preprocessed_real_output/data_labeled.h5
+export DSLAB_CLIMATE_LABELED_REAL_DATA=/mnt/ds3lab-scratch/climate/preprocessed_real_output/data_labeled.h5
 
+export DSLAB_RESULT_FILE=/mnt/ds3lab-scratch/climate/results/results.csv
 
 export CNN_WEIGHTS=/mnt/ds3lab-scratch/climate/models/

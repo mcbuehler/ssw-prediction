@@ -5,5 +5,9 @@ data/*
 .ipynb_checkpoints/
 .idea
 __pycache__
+
+notebooks/.ipynb_checkpoints/
 pytorch_lstm.py
+pretrained_models
+model_manager.py
 xgboost_prediction.py

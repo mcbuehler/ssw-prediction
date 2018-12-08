@@ -31,13 +31,13 @@ class Output:
         :scores: The scores of the experiment as a python list
         """
         assert task in self.tasks, (
-                "The available tasks are 'prediction' and 'classification'")
+            "The available tasks are 'prediction' and 'classification'")
         assert data_type in self.data_types, (
-                "The available data types are 'real' and 'simulated'")
+            "The available data types are 'real' and 'simulated'")
         assert definition in self.definitions, (
-                "The available definitions are 'CP07', 'U&T', 'U65'")
+            "The available definitions are 'CP07', 'U&T', 'U65'")
         assert metric in self.metrics, (
-                "The available metrics are 'accuracy','auroc', 'f1'")
+            "The available metrics are 'accuracy','auroc', 'f1'")
 
         self.classifier = classifier
         self.task = task
@@ -66,7 +66,7 @@ class Output:
         scores = ','.join(str(e) for e in self.scores)
         ts = time.ctime()
         label = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
+            ["git", "rev-parse", "HEAD"]).strip().decode("utf-8")
         output_string = "{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
                 ts,
                 label,
