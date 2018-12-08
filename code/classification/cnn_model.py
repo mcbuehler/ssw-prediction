@@ -10,7 +10,7 @@ class ConvNet(nn.Module):
     Pytorch CNN model for yearly SSW classification.
     """
 
-    def __init__(self, input_channels, k1=15, k2=20, filt1=16, filt2=32,
+    def __init__(self, input_channels, k1=15, k2=20, filt1=32, filt2=64,
                  drop1=0.4, drop2=0.4):
         """
         Initializer for the CNN model.
