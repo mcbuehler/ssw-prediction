@@ -11,7 +11,8 @@ class PredictionSetBase:
     will do classification for
     """
 
-    def __init__(self, definition, path, cutoff_point, prediction_interval):
+    def __init__(self, definition, path, cutoff_point, prediction_start_day,
+                 prediction_interval):
         """The constructor of the PredictionSet class
 
         Parameters
@@ -24,13 +25,17 @@ class PredictionSetBase:
                 e.g. "../data/data_labeled.h5"
             cutoff_point: int
                 the maximum cutoff point until where your data will expand
+            prediction_start_day: int
+                the day where you want to make predictions for after the
+                cutoff_point
             prediction_interval: int
-                the week where you want to make predictions for
+                the interval where you will make predictions for
         """
 
         self.definition = definition
         self.path = path
         self.cutoff_point = cutoff_point
+        self.prediction_start_day = prediction_start_day
         self.prediction_interval = prediction_interval
         self.data_manager = DataManager(self.path)
 
@@ -54,8 +59,9 @@ class PredictionSetBase:
             labels[i, 0] = int(np.any(
                 temp_labels[
                     i,
-                    self.cutoff_point:
-                    self.cutoff_point + self.prediction_interval
+                    self.cutoff_point + self.prediction_start_day:
+                    self.cutoff_point + self.prediction_start_day +
+                    self.prediction_interval
                 ]))
         return labels
 
@@ -69,7 +75,8 @@ class PredictionSetBase:
 
 
 class CutoffWindowPredictionSet(PredictionSetBase):
-    def __init__(self, definition, path, cutoff_point, prediction_interval):
+    def __init__(self, definition, path, cutoff_point, prediction_start_day,
+                 prediction_interval):
         """The constructor of the PredictionSet class
 
         Parameters
@@ -80,10 +87,14 @@ class CutoffWindowPredictionSet(PredictionSetBase):
                 the path where the input data are
             cutoff_point: int
                 the maximum cutoff point until where your data will expand
+            prediction_start_day: int
+                the day where you want to make predictions for after the
+                cutoff_point
             prediction_interval: int
-                the week where you will do predictions in
+                the interval where you will make predictions for
         """
-        super().__init__(definition, path, cutoff_point, prediction_interval)
+        super().__init__(definition, path, cutoff_point, prediction_start_day,
+                         prediction_interval)
 
     def get_features(self):
         """Returns the data as a numpy array for the variables wind_60,
@@ -103,8 +114,8 @@ class CutoffWindowPredictionSet(PredictionSetBase):
 
 
 class FixedWindowPredictionSet(PredictionSetBase):
-    def __init__(self, definition, path, cutoff_point, prediction_interval,
-                 feature_interval):
+    def __init__(self, definition, path, cutoff_point, prediction_start_day,
+                 prediction_interval, feature_interval):
         """The constructor of the PredictionSet class
 
         Parameters
@@ -115,12 +126,20 @@ class FixedWindowPredictionSet(PredictionSetBase):
                 the path where the input data are
             cutoff_point: int
                 the maximum cutoff point until where your data will expand
-            prediction_interval: int
-                the week where you will do predictions in
+            prediction_start_day: int
+                the day where you want to make predictions for after the
+                cutoff_point
+            prediction_start_day: int
+                the interval where you will make predictions for
             feature_interval: int
                 the interval where you will extract features from
         """
-        super().__init__(definition, path, cutoff_point, prediction_interval)
+        super().__init__(
+            definition=definition,
+            path=path,
+            cutoff_point=cutoff_point,
+            prediction_start_day=prediction_start_day,
+            prediction_interval=prediction_interval)
 
         # We need to make sure that we don't access negative indices
         assert (self.cutoff_point - feature_interval) >= 0
@@ -153,7 +172,8 @@ if __name__ == '__main__':
     import os
 
     cutoff_point = 70
-    prediction_week = 3
+    prediction_start_day = 7
+    prediction_interval = 7
     path_input = os.getenv("DSLAB_CLIMATE_LABELED_DATA")
     target = DK.CP07
 
@@ -162,7 +182,8 @@ if __name__ == '__main__':
         target,
         path_input,
         cutoff_point,
-        prediction_week
+        prediction_start_day,
+        prediction_interval
     )
     features1 = cutoff_prediction_set.get_features()
     labels1 = cutoff_prediction_set.get_labels()
@@ -175,7 +196,8 @@ if __name__ == '__main__':
         target,
         path_input,
         cutoff_point,
-        prediction_week,
+        prediction_start_day,
+        prediction_interval,
         feature_interval
     )
 

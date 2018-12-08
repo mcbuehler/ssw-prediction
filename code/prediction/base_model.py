@@ -6,8 +6,8 @@ class PredictionBaseModel:
     """Inherit from this class to create your own PredictionModels.
     """
 
-    def __init__(self, definition, path, cutoff_point=90,
-                 prediction_interval=2, features_interval=30, cv_folds=5):
+    def __init__(self, definition, path, cutoff_point=90, prediction_start_day=7,
+                 prediction_interval=7, features_interval=30, cv_folds=5):
 
         """
         Parameters
@@ -24,6 +24,7 @@ class PredictionBaseModel:
         self.cv_folds = cv_folds
 
         self.cutoff_point = cutoff_point
+        self.prediction_start_day = prediction_start_day
         self.prediction_interval = prediction_interval
         self.features_interval = features_interval
 
@@ -34,6 +35,7 @@ class PredictionBaseModel:
             definition=self.definition,
             path=self.path,
             cutoff_point=self.cutoff_point,
+            prediction_start_day=self.prediction_start_day,
             prediction_interval=self.prediction_interval,
             feature_interval=self.features_interval
         )
