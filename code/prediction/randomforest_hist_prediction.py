@@ -1,27 +1,22 @@
 import argparse
-import warnings
+import os
 
-from imblearn.over_sampling import ADASYN
+import matplotlib.pyplot as ply
+import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.exceptions import UndefinedMetricWarning
-from sklearn.metrics import make_scorer, f1_score, roc_auc_score, \
+from sklearn.metrics import f1_score, roc_auc_score, \
     accuracy_score
-from sklearn.model_selection import StratifiedKFold, \
-    cross_validate
-# from sklearn.pipeline import Pipeline
-from imblearn.pipeline import Pipeline
+from sklearn.model_selection import StratifiedKFold
 
-from preprocessing.dataset import DatapointKey as DK
-from utils.enums import Classifier, Task, Metric, DataType
-import os
-import numpy as np
-import matplotlib.pyplot as ply
 from prediction.base_model import PredictionBaseModel
-
-from utils.set_seed import SetSeed
+from preprocessing.dataset import DatapointKey as DK
 from utils.dslab_logging import get_logger
+from utils.enums import Classifier, Task, Metric, DataType
 from utils.output_class import Output
+from utils.set_seed import SetSeed
+
+# from sklearn.pipeline import Pipeline
 
 
 SetSeed().set_seed()
@@ -52,7 +47,6 @@ class HistogramTransformer(BaseEstimator, TransformerMixin):
                 of shape (num_data, num_variables, num_days)
             n_bins: int
                 number of bins to use in the histograms
-
         """
         hist = np.apply_along_axis(
             lambda a: np.histogram(a, bins=n_bins)[0],
@@ -171,7 +165,6 @@ class RandomForestPrediction(PredictionBaseModel):
 
         print(scores)
         scores = [scores[txt] for txt in self.metric_txt]
-
 
         # We only want to keep mean and std for each metric
         scores_means = [np.mean(score) for score in scores]

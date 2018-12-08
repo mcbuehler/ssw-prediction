@@ -6,8 +6,14 @@ class PredictionBaseModel:
     """Inherit from this class to create your own PredictionModels.
     """
 
-    def __init__(self, definition, path, cutoff_point=90, prediction_start_day=7,
-                 prediction_interval=7, features_interval=30, cv_folds=5):
+    def __init__(self,
+                 definition,
+                 path,
+                 cutoff_point=90,
+                 prediction_start_day=7,
+                 prediction_interval=7,
+                 features_interval=30,
+                 cv_folds=5):
 
         """
         Parameters
@@ -57,7 +63,8 @@ class PredictionBaseModel:
             y_train: numpy array
                 An array of the form [num_resampled_data, 1]
         """
-        X_train, y_train = ADASYN(n_neighbors=20, n_jobs=4).fit_resample(data, labels)
+        X_train, y_train = ADASYN(n_neighbors=20, n_jobs=4).\
+            fit_resample(data, labels)
 
         return X_train, y_train
 

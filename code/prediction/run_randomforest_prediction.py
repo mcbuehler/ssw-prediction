@@ -1,6 +1,3 @@
-import logging
-
-from sklearn.exceptions import UndefinedMetricWarning
 
 from prediction.randomforest_hist_prediction import RandomForestPrediction
 from preprocessing.dataset import DatapointKey as DK
@@ -47,6 +44,7 @@ def run_experiment_grid_prediction():
                             prediction_interval=prediction
                         )
                         model.evaluate(plot=False)
+
 
 if __name__ == '__main__':
     run_experiment_grid_prediction()
