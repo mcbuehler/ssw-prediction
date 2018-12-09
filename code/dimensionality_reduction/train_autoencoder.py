@@ -15,9 +15,16 @@ class AutoEncoderTraining:
     """A class that trains an autoencoder on our original data. It can scale the
     data per feature in [-1, 1] or not scale them at all. The autoencoder is a
     (denoising) two layer one. There are separate methods for training and
-    producing the encondings when you have already trained a model."""
+    producing the encondings when you have already trained a model.
+    Attributes
+    ----------
+        feature_count: int
+            The number of features we have
+    """
 
-    def __init__(self, batch_size, cuda, scale):
+    feature_count = 3
+
+    def __init__(self, batch_size, cuda, scale, flatten):
         """The constructor of the class. Also sets the random seed and the least
         available GPU if this is available.
 
@@ -30,11 +37,14 @@ class AutoEncoderTraining:
             scale: bool
                 Choose if you are going to scale your features or not (the
                 scaling is done per feature)
+            flatten: bool
+                A flag to know if you are getting flatten data or a tensor
 
         """
         self.batch_size = batch_size
         self.cuda = cuda
         self.scale = scale
+        self.flatten = flatten
 
         if self.cuda:
             set_gpu()
@@ -113,28 +123,33 @@ class AutoEncoderTraining:
             dataloader: DataLoader class
                 A dataloader that is ready to be fed into a NN
         """
-        _, self.feature_count, self.dimensionality = \
-            temp_data.shape
-        self.input_dim = self.feature_count * self.dimensionality
+        if self.flatten:
+            _, self.feature_count, self.dimensionality = \
+                temp_data.shape
+            self.input_dim = self.feature_count * self.dimensionality
 
-        # bring data from format (N, FC, D) to (N, FC * D)
-        data = [np.hstack(
-            (temp_data[i, j-2], temp_data[i, j-1], temp_data[i, j]))
-            for i in range(len(temp_data))
-            for j in range(len(temp_data[i]))
-            if j % self.feature_count == self.feature_count - 1
-            ]
-        data = np.array(data)
+            # bring data from format (N, FC, D) to (N, FC * D)
+            data = [np.hstack(
+                (temp_data[i, j-2], temp_data[i, j-1], temp_data[i, j]))
+                for i in range(len(temp_data))
+                for j in range(len(temp_data[i]))
+                if j % self.feature_count == self.feature_count - 1
+                ]
+            data = np.array(data)
+        else:
+            _, self.input_dim = temp_data.shape
+            self.dimensionality = self.input_dim
+            data = np.copy(temp_data)
 
         # decide if you are going to scale or not
         if self.scale:
             if scalers is None:
-                scalers, data = self.scale_per_variable(data=data,
-                                                        scalers_exist=False)
+                scalers, data = self._scale_per_variable(data=data,
+                                                         scalers_exist=False)
             else:
-                _, data = self.scale_per_variable(data=data,
-                                                  scalers_exist=True,
-                                                  scalers=scalers)
+                _, data = self._scale_per_variable(data=data,
+                                                   scalers_exist=True,
+                                                   scalers=scalers)
         else:
             scalers = []
 
@@ -202,6 +217,7 @@ class AutoEncoderTraining:
             denoising: bool
                 Flag to decide if you are going to train the denoising version
                 of the autoencoder
+        Returns
         """
         first_layer_dim = self.input_dim // 2
         second_layer_dim = first_layer_dim // 2
@@ -227,7 +243,18 @@ class AutoEncoderTraining:
             print('epoch [{}/{}], loss:{:.4f}'
                   .format(epoch + 1, num_epochs, loss.item()))
 
-        return model
+        trained_encondings = []
+        for data in dataloader:
+            data = data.detach()
+            encondings, output = model(data.float())
+            if self.cuda:
+                temp_encondings = encondings.detach().cpu().numpy()
+            else:
+                temp_encondings = encondings.detach().numpy()
+            for enconding in temp_encondings:
+                trained_encondings.append(enconding)
+
+        return model, np.array(trained_encondings)
 
     def produce_encodings(self, model, data, scalers):
         """Produces the encondings by getting an already trained model, the
@@ -342,7 +369,7 @@ if __name__ == '__main__':
             )
     args = parser.parse_args()
     test = AutoEncoderTraining(args.batch_size, torch.cuda.is_available(),
-                               args.scale)
+                               args.scale, flatten=True)
     data = test.load_data(
             definition=args.definition,
             path=args.path,
@@ -353,6 +380,6 @@ if __name__ == '__main__':
             )
     optimizer = SGD
     scalers, dataloader = test.preprocessing(data[:2000], mode='train')
-    model = test.train(args.epochs, optimizer, 0.01,
-                       args.denoising, dataloader)
+    model, trained_encondings = test.train(args.epochs, optimizer, 0.01,
+                                           args.denoising, dataloader)
     encondings = test.produce_encodings(model, data[2000:], scalers)

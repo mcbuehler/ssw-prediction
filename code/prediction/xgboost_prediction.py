@@ -66,7 +66,7 @@ class XGBoostPredict(ManualAndXGBoost):
             y_train: numpy array
                 An array of the form [num_resampled_data, 1]
         """
-        X_train, y_train = ADASYN().fit_resample(data, labels)
+        X_train, y_train = ADASYN(n_jobs=16).fit_resample(data, labels)
         return X_train, y_train
 
     def _stack_variables(self, temp_data):
@@ -268,7 +268,7 @@ class XGBoostPredict(ManualAndXGBoost):
                     scores[key] = value
         return scores
 
-    def write_to_csv(self, datatype, scores):
+    def write_to_csv(self, classifier, datatype, scores):
         """Writes to the results.csv file. It accepts the scores as a dictionary
         returned by cross_validate and the datatype (real or simulated) and
         then initializes the Output class with the proper parameters in order
@@ -281,9 +281,10 @@ class XGBoostPredict(ManualAndXGBoost):
         """
         for key, value in scores.items():
             if key.startswith('test'):
-                results = Output(Classifier.xgboost, Task.prediction,
+                results = Output(classifier, Task.prediction,
                                  datatype, self.definition, self.cutoff_point,
                                  self.features_interval,
+                                 self.prediction_start_day,
                                  self.prediction_interval,
                                  key.split('_')[1], value)
                 results.write_output()
@@ -385,14 +386,17 @@ if __name__ == "__main__":
                             stratify=labels)
 
             scores = test.pipeline(X_train, y_train, X_test, y_test)
-            test.write_to_csv(DataType.simulated, scores)
+            test.write_to_csv(Classifier.xgboost_tsfresh, DataType.simulated,
+                              scores)
         else:
             scores = test.evaluate_simulated(data, labels, scoring)
-            test.write_to_csv(DataType.simulated, scores)
+            test.write_to_csv(Classifier.xgboost_tsfresh, DataType.simulated,
+                              scores)
     else:
         real_data, real_labels = test.get_data_and_labels(args.real_path)
         sim_data, sim_labels = test.get_data_and_labels(args.simulated_path)
         real_data = test._stack_variables(real_data)
         sim_data = test._stack_variables(sim_data)
         scores = test.pipeline(sim_data, sim_labels, real_data, real_labels)
-        test.write_to_csv(DataType.real, scores)
+        test.write_to_csv(Classifier.xgboost_tsfresh,
+                          DataType.real, scores)

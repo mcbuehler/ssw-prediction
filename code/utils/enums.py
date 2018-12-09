@@ -13,7 +13,8 @@ class Metric:
 
 class Classifier:
     """An enum class for the classifier used"""
-    xgboost = "xgboost"
+    xgboost_tsfresh = "xgboost_tsfresh"
+    xgboost_auto = "xgboost_autoencoders"
     cnn = "cnn"
     rnn = "rnn"
     randomforest = "randomforest"
