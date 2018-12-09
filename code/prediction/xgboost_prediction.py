@@ -89,9 +89,9 @@ class XGBoostPredict(ManualAndXGBoost):
         for i in range(len(temp_data)):
             for j in range(len(temp_data[i])):
                 if j % self.feature_count == self.feature_count - 1:
-                    data.append(np.hstack((temp_data[i, j],
+                    data.append(np.hstack((temp_data[i, j-2],
                                            temp_data[i, j-1],
-                                           temp_data[i, j-2])))
+                                           temp_data[i, j])))
 
         return np.array(data)
 
@@ -122,15 +122,6 @@ class XGBoostPredict(ManualAndXGBoost):
         ----------
             path: string
                 The path of the data (real or simulated)
-            definition: string
-                The definition that you will get the labels for
-            cutoff_point: int
-                The maximum cutoff_point where you will look your time series
-            features_interval: int
-                The number of days in the past that you will look the time
-                series before the cutoff_point
-            week_interval: int
-                The week interval that you will predict in the future
         Returns
         -------
             data: numpy array

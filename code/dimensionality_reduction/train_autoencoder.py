@@ -12,7 +12,26 @@ from dimensionality_reduction.models import TwoLayerAutoencoder
 
 
 class AutoEncoderTraining:
+    """A class that trains an autoencoder on our original data. It can scale the
+    data per feature in [-1, 1] or not scale them at all. The autoencoder is a
+    (denoising) two layer one. There are separate methods for training and
+    producing the encondings when you have already trained a model."""
+
     def __init__(self, batch_size, cuda, scale):
+        """The constructor of the class. Also sets the random seed and the least
+        available GPU if this is available.
+
+        Parameters
+        ----------
+            batch_size: int
+                The batch size
+            cuda: bool
+                A boolean to run on CPU or GPU when the latter is available
+            scale: bool
+                Choose if you are going to scale your features or not (the
+                scaling is done per feature)
+
+        """
         self.batch_size = batch_size
         self.cuda = cuda
         self.scale = scale
@@ -22,8 +41,34 @@ class AutoEncoderTraining:
 
         SetSeed().set_seed()
 
-    def scale_per_variable(self, data, scalers_exist, scalers=None,
-                           scale_range=(-1, 1)):
+    def _scale_per_variable(self, data, scalers_exist, scalers=None,
+                            scale_range=(-1, 1)):
+        """A function that either fits a scaler per variable and then transforms
+        the data per variable as well during the training or just tranforms the
+        data per variable in case we want to produce the embeddings.
+
+        Parameters
+        ----------
+            data: numpy array
+                The original data with shape [num_data, feature_count *
+                dimensionality]
+            scalers_exit: bool
+                A flag as to now if the scalers exist or they have to be fitted
+            scalers: list or None
+                A python list that will have the fitted scalers or nothing in
+                case the scalers are produced from scratch
+            scale_range: tuple
+                The range the scaling will be done in.
+
+        Returns
+        -------
+            scalers: list
+                A list of scalers that have either been fitted or they are the
+                same as the ones passed as a parameter
+            data: numpy array
+                The scaled data with shape [num_data, feature_count *
+                dimensionality]
+        """
         # normalize data to [-1, 1]
         if scalers is None:
             scalers = []
@@ -43,10 +88,36 @@ class AutoEncoderTraining:
         return scalers, data
 
     def preprocessing(self, temp_data, mode, scalers=None):
+        """A function that preprocesses the data either in the training or in
+        the produce_encodings phase. It flattens the data from shape [num_data,
+        feature_count, dimensionality] to [num_data, feature_count *
+        dimensionality] and then scales them. Finally it returns a DataLoader
+        class for a model to be fitted.
+        Parameters
+        ----------
+            temp_data: numpy array
+                The original data with dimensions [num_data, num_features,
+                dimensionality]
+            mode: string
+                The mode that the preprocessing is going to be run ('train' or
+                'eval')
+            scalers: list or None
+                A python list that will have the fitted scalers or nothing in
+                case the scalers are produced from scratch
+
+        Returns
+        -------
+            scalers: list
+                A list of scalers that have either been fitted or they are the
+                same as the ones passed as a parameter
+            dataloader: DataLoader class
+                A dataloader that is ready to be fed into a NN
+        """
         _, self.feature_count, self.dimensionality = \
-                temp_data.shape
+            temp_data.shape
         self.input_dim = self.feature_count * self.dimensionality
 
+        # bring data from format (N, FC, D) to (N, FC * D)
         data = [np.hstack(
             (temp_data[i, j-2], temp_data[i, j-1], temp_data[i, j]))
             for i in range(len(temp_data))
@@ -55,6 +126,7 @@ class AutoEncoderTraining:
             ]
         data = np.array(data)
 
+        # decide if you are going to scale or not
         if self.scale:
             if scalers is None:
                 scalers, data = self.scale_per_variable(data=data,
@@ -66,6 +138,7 @@ class AutoEncoderTraining:
         else:
             scalers = []
 
+        # return the correct dataloader based on your mode
         if mode == 'train':
             dataloader = DataLoader(data, batch_size=self.batch_size)
         else:
@@ -75,6 +148,31 @@ class AutoEncoderTraining:
 
     def load_data(self, definition, path, cutoff_point, prediction_start_day,
                   prediction_interval, features_interval):
+        """This function uses the FixedWindowPredictionSet class in order to
+        return the data.
+
+        Parameters
+        ----------
+            definition: string
+                the definition that you will get the labels for
+            path: string
+                the path of the data (real or simulated)
+            cutoff_point: int
+                the maximum cutoff_point where you will look your time series
+            prediction_start_day: int
+                the day you are going to start your predictions for
+            prediction_interval: int
+                the interval you are going to make predictions for
+            features_interval: int
+                the number of days in the past that you will look the time
+                series before the cutoff_point
+        Returns
+        -------
+            data: numpy array
+                A numpy array of shape [num_data, num_features, dimensionality]
+                that contains the data
+        """
+
         self.prediction_set = FixedWindowPredictionSet(
                 definition,
                 path,
@@ -90,9 +188,23 @@ class AutoEncoderTraining:
 
     def train(self, num_epochs, optimizer, learning_rate,
               denoising, dataloader):
+        """Trains the two layer autoencoder. It sets all the necessary
+        parameters for initializing the NN and then it trains it and returns
+        the trained one.
+        Parameters
+        ----------
+            num_epochs: int
+                The number of epochs the network is going to be trained for
+            optimizer: torch.optim function
+                The optimizer that is going to be used for updating the NN
+            learning_rate: float
+                The learning rate of the optimizer
+            denoising: bool
+                Flag to decide if you are going to train the denoising version
+                of the autoencoder
+        """
         first_layer_dim = self.input_dim // 2
         second_layer_dim = first_layer_dim // 2
-
         activation = nn.Sigmoid()
 
         model = TwoLayerAutoencoder(self.input_dim, first_layer_dim,
@@ -118,6 +230,24 @@ class AutoEncoderTraining:
         return model
 
     def produce_encodings(self, model, data, scalers):
+        """Produces the encondings by getting an already trained model, the
+        scalers used for the preprocessing of the training data (if they exist)
+        and the validation/test data in their original format.
+
+        Parameters
+        ----------
+            model: torch.nn.Module class
+                A trained two-layers autoencoder
+            data: numpy array
+                the validation/test data with dimensions [num_data,
+                num_features, dimensionality]
+            scalers: list
+                A list of scalers that have either been fitted (or maybe empty)
+        Returns
+        -------
+            encondings: numpy array
+                The encondings with size [num_data, enconding_dimension]
+        """
         _, dataloader = self.preprocessing(temp_data=data, mode='eval',
                                            scalers=scalers)
         for data in dataloader:
@@ -226,4 +356,3 @@ if __name__ == '__main__':
     model = test.train(args.epochs, optimizer, 0.01,
                        args.denoising, dataloader)
     encondings = test.produce_encodings(model, data[2000:], scalers)
-    print(encondings)
