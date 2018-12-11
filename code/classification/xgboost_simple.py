@@ -301,15 +301,15 @@ if __name__ == '__main__':
             model = test.train(X_train, y_train)
 
             scores = test.test(model, X_test, y_test, scoring_real)
-            test.write_to_csv(DataType.simulated, scores)
+            test.write_to_csv(Task.classification, DataType.simulated, scores)
             if args.plot:
                 test.plot(model)
         else:
             scores = test.evaluate_simulated(features, labels, scoring_sim)
-            test.write_to_csv(DataType.simulated, Task.classification, scores)
+            test.write_to_csv(Task.classification, DataType.simulated, scores)
     else:
         real_features, real_labels = test.preprocess(args.real_path)
         sim_features, sim_labels = test.preprocess(args.simulated_path)
         model = test.train(sim_features, sim_labels)
         scores = test.test(model, real_features, real_labels, scoring_real)
-        test.write_to_csv(DataType.real, Task.classification, scores)
+        test.write_to_csv(Task.classification, DataType.real, scores)

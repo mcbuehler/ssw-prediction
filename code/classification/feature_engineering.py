@@ -75,8 +75,8 @@ class FeatureEngineering:
         # [num_data, num_features*len_winter]
         length = len(variables)
         new_features = [
-                np.concatenate((features[i], features[i-1],
-                                features[i-2]), axis=0)
+                np.concatenate((features[i - 2], features[i - 1],
+                                features[i]), axis=0)
                 for i, feature in enumerate(features)
                 if i % length == 2
                 ]
