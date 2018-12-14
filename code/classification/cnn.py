@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 
@@ -25,7 +26,7 @@ class CNNClassification():
     """
 
     def __init__(self, path_train, definition, path_test=None,
-                 c_model_name=Classifier.cnn, cv_folds=5, num_epochs=100,
+                 c_model_name=Classifier.cnn, cv_folds=5, num_epochs=1,
                  batch_size=8, learning_rate=0.0003):
         """
         Initializer for CNNClassification class.
@@ -254,6 +255,14 @@ def run_classification(path_train, definition, path_test, c_model_name,
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--savemodel',
+                        help='Use this flag if you want to save the '
+                             'resulting model',
+                        action='store_true')
+    args = parser.parse_args()
+
     set_gpu()
 
     # Path for training data
@@ -274,4 +283,4 @@ if __name__ == '__main__':
     for c_model_name, c_model in cnn_model.get_cnn_classes().items():
         for definition in definitions:
             run_classification(path_train, definition, path_test,
-                               Classifier.cnn_max_pool)
+                               Classifier.cnn_max_pool, save=args.savemodel)
