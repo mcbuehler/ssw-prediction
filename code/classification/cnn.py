@@ -283,4 +283,4 @@ if __name__ == '__main__':
     for c_model_name, c_model in cnn_model.get_cnn_classes().items():
         for definition in definitions:
             run_classification(path_train, definition, path_test,
-                               Classifier.cnn_max_pool, save=args.savemodel)
+                               c_model_name, save=args.savemodel)
