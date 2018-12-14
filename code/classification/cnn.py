@@ -26,7 +26,7 @@ class CNNClassification():
     """
 
     def __init__(self, path_train, definition, path_test=None,
-                 c_model_name=Classifier.cnn, cv_folds=5, num_epochs=1,
+                 c_model_name=Classifier.cnn, cv_folds=5, num_epochs=100,
                  batch_size=8, learning_rate=0.0003):
         """
         Initializer for CNNClassification class.
