@@ -22,7 +22,7 @@ class XGBoostPredict(ManualAndXGBoost):
     """
 
     def __init__(self, definition, cutoff_point, features_interval,
-                 prediction_interval):
+                 prediction_start_day, prediction_interval):
         """The constructor of the XGBoostPredict class
         Parameters
         ----------
@@ -33,12 +33,16 @@ class XGBoostPredict(ManualAndXGBoost):
             features_interval: int
                 The number of days in the past that you will look the time
                 series before the cutoff_point
+            prediction_start_day: int
+                the day where you want to make predictions for after the
+                cutoff_point
             prediction_interval: int
-                The week that you will predict in the future
+                the interval where you will make predictions for
         """
         self.definition = definition
         self.cutoff_point = cutoff_point
         self.features_interval = features_interval
+        self.prediction_start_day = prediction_start_day
         self.prediction_interval = prediction_interval
 
         # set the seed for all the libraries
@@ -139,6 +143,7 @@ class XGBoostPredict(ManualAndXGBoost):
                 self.definition,
                 path,
                 self.cutoff_point,
+                self.prediction_start_day,
                 self.prediction_interval,
                 self.features_interval)
 
@@ -199,7 +204,8 @@ class XGBoostPredict(ManualAndXGBoost):
                 The trained model
         """
 
-        model = XGBClassifier(n_estimators=1000, max_depth=5, reg_alpha=0.1)
+        model = XGBClassifier(n_estimators=1000, max_depth=5, reg_alpha=0.1,
+                              n_jobs=16)
         model.fit(X_train, y_train)
         return model
 
@@ -351,12 +357,20 @@ if __name__ == "__main__":
             default=30
             )
     parser.add_argument(
-            "-wi",
-            "--week_interval",
-            help="Choose the week you are going to make predictions for",
+            "-sd",
+            "--prediction_start_day",
+            help="Choose the day you will start making predictions for",
             type=int,
             action="store",
-            default=5
+            default=7
+            )
+    parser.add_argument(
+            "-pi",
+            "--prediction_interval",
+            help="Choose the interval you are going to make predictions for",
+            type=int,
+            action="store",
+            default=7
             )
     args = parser.parse_args()
     scoring = {
@@ -368,7 +382,8 @@ if __name__ == "__main__":
             definition=args.definition,
             cutoff_point=args.cutoff_point,
             features_interval=args.features_interval,
-            prediction_interval=args.week_interval
+            prediction_start_day=args.prediction_start_day,
+            prediction_interval=args.prediction_interval
             )
     if args.data_type == 'sim':
         data, labels = test.get_data_and_labels(args.simulated_path)
