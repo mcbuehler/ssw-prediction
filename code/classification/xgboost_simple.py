@@ -8,7 +8,6 @@ from sklearn.model_selection import train_test_split, cross_validate
 from sklearn.metrics import (accuracy_score, make_scorer, f1_score,
                              roc_auc_score)
 from xgboost import XGBClassifier
-from matplotlib import pyplot
 from classification.feature_engineering import FeatureEngineering
 from utils.set_seed import SetSeed
 from utils.output_class import Output
@@ -118,8 +117,7 @@ class ManualAndXGBoost(FeatureEngineering):
 
     def train(self, X_train, y_train):
         """Trains an XGBoostClassifier by getting the training data from other
-        parts of the class. Also prints the three most important features for
-        the classification and plots them as a bar plot.
+        parts of the class.
 
         Parameters
         ----------
@@ -164,9 +162,9 @@ class ManualAndXGBoost(FeatureEngineering):
         scores = cross_validate(model, X, y, cv=5, scoring=scoring)
         return scores
 
-    def plot(self, model):
+    def feature_importances(self, model):
         """ Prints the three most important features for the classification
-        when the XGB Classifier has been used and plots them as a bar plot.
+        when the XGB Classifier has been used.
         Parameters
         ----------
             model: XGBClassifier class
@@ -181,9 +179,6 @@ class ManualAndXGBoost(FeatureEngineering):
                     max_idxs.append(self.feature_keys[k])
 
         print(max_idxs)
-        pyplot.title("Feature importance for definition:" + self.definition)
-        pyplot.bar(list(range(1, 4)), top_3)
-        pyplot.show()
 
     def test(self, model, X_test, y_test, scoring):
         """Returns the scoring of the model on the test set.
@@ -223,7 +218,7 @@ class ManualAndXGBoost(FeatureEngineering):
         for key, value in scores.items():
             if key.startswith('test'):
                 results = Output(Classifier.xgboost, task,
-                                 datatype, self.definition, '-', '-', '-',
+                                 datatype, self.definition, '-', '-', '-', '-',
                                  key.split('_')[1], value)
                 results.write_output()
 
@@ -272,8 +267,8 @@ if __name__ == '__main__':
             )
     parser.add_argument(
             "-p",
-            "--plot",
-            help="Choose if you'll plot the feature importances as bar plots",
+            "--produce_importance",
+            help="Choose if you'll produce the feature importances",
             action="store_true",
             default=False
             )
@@ -302,8 +297,8 @@ if __name__ == '__main__':
 
             scores = test.test(model, X_test, y_test, scoring_real)
             test.write_to_csv(Task.classification, DataType.simulated, scores)
-            if args.plot:
-                test.plot(model)
+            if args.produce_importance:
+                test.feature_importances(model)
         else:
             scores = test.evaluate_simulated(features, labels, scoring_sim)
             test.write_to_csv(Task.classification, DataType.simulated, scores)
