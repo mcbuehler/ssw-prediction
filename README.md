@@ -37,3 +37,11 @@ In order to run the jupyter notebooks you have to set up your jupyter path to th
 Go to the `code` folder and execute this script: 
 `python classification/run_randomforest_classification.py`
 The results will be written to the results file defined by the environment variable `DSLAB_RESULT_FILE`
+
+### CNNs
+
+Go to the `code` folder and execute this script: 
+`python classification/cnn.py`
+The results will be written to the results file defined by the environment variable `DSLAB_RESULT_FILE`
+
+If the resulting Pytorch model weights is to be persisted, use `--savemodel` flag and set `CNN_WEIGHTS` environment variable to the directory where the model weights is going to be persisted.
