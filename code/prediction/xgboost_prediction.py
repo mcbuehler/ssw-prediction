@@ -143,11 +143,9 @@ class XGBoostPredict(ManualAndXGBoost):
                 self.features_interval)
 
         labels = np.ravel(self.prediction_set.get_labels())
-        labels = labels[:200]
 
         # returns data in format (N, FC, D)
         data = self.prediction_set.get_features()
-        data = data[:200]
         return data, labels
 
     def tune_classifier(self, X_train, y_train):
