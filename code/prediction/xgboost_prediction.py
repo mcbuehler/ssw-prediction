@@ -22,7 +22,8 @@ class XGBoostPredict(ManualAndXGBoost):
     """
 
     def __init__(self, definition, cutoff_point, features_interval,
-                 prediction_start_day, prediction_interval):
+                 prediction_start_day, prediction_interval,
+                 features_importance):
         """The constructor of the XGBoostPredict class
         Parameters
         ----------
@@ -34,16 +35,19 @@ class XGBoostPredict(ManualAndXGBoost):
                 The number of days in the past that you will look the time
                 series before the cutoff_point
             prediction_start_day: int
-                the day where you want to make predictions for after the
+                The day where you want to make predictions for after the
                 cutoff_point
             prediction_interval: int
-                the interval where you will make predictions for
+                The interval where you will make predictions for
+            features_importance: bool
+                Choose if you will print the top3 most important features
         """
         self.definition = definition
         self.cutoff_point = cutoff_point
         self.features_interval = features_interval
         self.prediction_start_day = prediction_start_day
         self.prediction_interval = prediction_interval
+        self.feature_importances = features_importance
 
         # set the seed for all the libraries
         SetSeed().set_seed()
@@ -66,7 +70,7 @@ class XGBoostPredict(ManualAndXGBoost):
             y_train: numpy array
                 An array of the form [num_resampled_data, 1]
         """
-        X_train, y_train = ADASYN().fit_resample(data, labels)
+        X_train, y_train = ADASYN(n_jobs=16).fit_resample(data, labels)
         return X_train, y_train
 
     def _stack_variables(self, temp_data):
@@ -89,9 +93,9 @@ class XGBoostPredict(ManualAndXGBoost):
         for i in range(len(temp_data)):
             for j in range(len(temp_data[i])):
                 if j % self.feature_count == self.feature_count - 1:
-                    data.append(np.hstack((temp_data[i, j],
+                    data.append(np.hstack((temp_data[i, j-2],
                                            temp_data[i, j-1],
-                                           temp_data[i, j-2])))
+                                           temp_data[i, j])))
 
         return np.array(data)
 
@@ -122,15 +126,6 @@ class XGBoostPredict(ManualAndXGBoost):
         ----------
             path: string
                 The path of the data (real or simulated)
-            definition: string
-                The definition that you will get the labels for
-            cutoff_point: int
-                The maximum cutoff_point where you will look your time series
-            features_interval: int
-                The number of days in the past that you will look the time
-                series before the cutoff_point
-            week_interval: int
-                The week interval that you will predict in the future
         Returns
         -------
             data: numpy array
@@ -148,9 +143,11 @@ class XGBoostPredict(ManualAndXGBoost):
                 self.features_interval)
 
         labels = np.ravel(self.prediction_set.get_labels())
+        labels = labels[:200]
 
         # returns data in format (N, FC, D)
         data = self.prediction_set.get_features()
+        data = data[:200]
         return data, labels
 
     def tune_classifier(self, X_train, y_train):
@@ -238,6 +235,8 @@ class XGBoostPredict(ManualAndXGBoost):
                 X_train, self.variables)
         _, X_test = super()._produce_features(X_test, self.variables)
         model = self.train(X_train, y_train)
+        if self.feature_importances:
+            super().feature_importances(model)
         temp_scores = super().test(model, X_test, y_test, scoring)
         return temp_scores
 
@@ -277,7 +276,7 @@ class XGBoostPredict(ManualAndXGBoost):
                     scores[key] = value
         return scores
 
-    def write_to_csv(self, datatype, scores):
+    def write_to_csv(self, classifier, datatype, scores):
         """Writes to the results.csv file. It accepts the scores as a dictionary
         returned by cross_validate and the datatype (real or simulated) and
         then initializes the Output class with the proper parameters in order
@@ -290,9 +289,10 @@ class XGBoostPredict(ManualAndXGBoost):
         """
         for key, value in scores.items():
             if key.startswith('test'):
-                results = Output(Classifier.xgboost, Task.prediction,
+                results = Output(classifier, Task.prediction,
                                  datatype, self.definition, self.cutoff_point,
                                  self.features_interval,
+                                 self.prediction_start_day,
                                  self.prediction_interval,
                                  key.split('_')[1], value)
                 results.write_output()
@@ -372,6 +372,13 @@ if __name__ == "__main__":
             action="store",
             default=7
             )
+    parser.add_argument(
+            "-p",
+            "--produce_importance",
+            help="Choose if you'll produce the feature importances",
+            action="store_true",
+            default=False
+            )
     args = parser.parse_args()
     scoring = {
             'auroc': roc_auc_score,
@@ -383,7 +390,8 @@ if __name__ == "__main__":
             cutoff_point=args.cutoff_point,
             features_interval=args.features_interval,
             prediction_start_day=args.prediction_start_day,
-            prediction_interval=args.prediction_interval
+            prediction_interval=args.prediction_interval,
+            features_importance=args.produce_importance
             )
     if args.data_type == 'sim':
         data, labels = test.get_data_and_labels(args.simulated_path)
@@ -394,14 +402,17 @@ if __name__ == "__main__":
                             stratify=labels)
 
             scores = test.pipeline(X_train, y_train, X_test, y_test)
-            test.write_to_csv(DataType.simulated, scores)
+            test.write_to_csv(Classifier.xgboost_tsfresh, DataType.simulated,
+                              scores)
         else:
             scores = test.evaluate_simulated(data, labels, scoring)
-            test.write_to_csv(DataType.simulated, scores)
+            test.write_to_csv(Classifier.xgboost_tsfresh, DataType.simulated,
+                              scores)
     else:
         real_data, real_labels = test.get_data_and_labels(args.real_path)
         sim_data, sim_labels = test.get_data_and_labels(args.simulated_path)
         real_data = test._stack_variables(real_data)
         sim_data = test._stack_variables(sim_data)
         scores = test.pipeline(sim_data, sim_labels, real_data, real_labels)
-        test.write_to_csv(DataType.real, scores)
+        test.write_to_csv(Classifier.xgboost_tsfresh,
+                          DataType.real, scores)
