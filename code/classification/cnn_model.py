@@ -10,8 +10,8 @@ class ConvNet(nn.Module):
     Pytorch CNN model for yearly SSW classification.
     """
 
-    def __init__(self, input_channels, k1=15, k2=20, filt1=16, filt2=32,
-                 drop1=0.4, drop2=0.4):
+    def __init__(self, input_channels, k1=15, k2=20, filt1=32, filt2=64,
+                 drop1=0.4, drop2=0.4, number_of_days=210):
         """
         Initializer for the CNN model.
 
@@ -28,7 +28,7 @@ class ConvNet(nn.Module):
         super(ConvNet, self).__init__()
 
         # Number of days in winter
-        NUM_DAYS = 210
+        self.number_of_days = number_of_days
 
         self.layer1 = nn.Sequential(
             nn.Conv1d(input_channels, filt1, kernel_size=k1),
@@ -40,7 +40,7 @@ class ConvNet(nn.Module):
             nn.ReLU(),
             nn.Dropout(p=drop2))
 
-        self.fc = nn.Linear((NUM_DAYS - k1 - k2 + 2) * filt2, 2)
+        self.fc = nn.Linear((number_of_days - k1 - k2 + 2) * filt2, 2)
 
     def forward(self, x):
         out = self.layer1(x)

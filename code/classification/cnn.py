@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 
@@ -26,7 +27,7 @@ class CNNClassification():
 
     def __init__(self, path_train, definition, path_test=None,
                  c_model_name=Classifier.cnn, cv_folds=5, num_epochs=100,
-                 batch_size=8, learning_rate=0.0004):
+                 batch_size=8, learning_rate=0.0003):
         """
         Initializer for CNNClassification class.
 
@@ -125,13 +126,10 @@ class CNNClassification():
                                 scoring=scorers)
 
         # We only want to keep mean and std for each metric
-        scores_means = [np.mean(scores['test_' + score_type])
-                        for score_type in self.metric_txt]
+        scores = [scores['test_' + score_type].tolist()
+                  for score_type in self.metric_txt]
 
-        scores_std = [np.std(scores['test_' + score_type])
-                      for score_type in self.metric_txt]
-
-        return scores_means, scores_std
+        return scores
 
     def evaluate_real(self, train=True):
         """
@@ -160,7 +158,7 @@ class CNNClassification():
         # Predict real test dataset and evaluate
         y_pred = self.classifier.predict(X_test)
 
-        scores = [metric(y_test, y_pred) for metric in self.metrics]
+        scores = [[metric(y_test, y_pred)] for metric in self.metrics]
 
         return scores
 
@@ -191,7 +189,7 @@ class CNNClassification():
         )
 
         for metric, score in out_metrics:
-            Output(metric=metric, scores=[score],
+            Output(metric=metric, scores=score,
                    **output_default_args).write_output()
 
     def save_model(self):
@@ -240,7 +238,7 @@ def run_classification(path_train, definition, path_test, c_model_name,
     cl = CNNClassification(path_train, definition, path_test=path_test,
                            c_model_name=c_model_name)
 
-    scores_sim, std_sim = cl.cv_evaluate_simulated()
+    scores_sim = cl.cv_evaluate_simulated()
     scores_real = cl.evaluate_real()
 
     print(scores_real)
@@ -253,11 +251,18 @@ def run_classification(path_train, definition, path_test, c_model_name,
         cl.save_model()
 
     return dict(scores_sim=scores_sim,
-                scores_real=scores_real,
-                std_sim=std_sim)
+                scores_real=scores_real)
 
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--savemodel',
+                        help='Use this flag if you want to save the '
+                             'resulting model',
+                        action='store_true')
+    args = parser.parse_args()
+
     set_gpu()
 
     # Path for training data
@@ -275,7 +280,7 @@ if __name__ == '__main__':
 
     # For each definition run a classifier, get 5-fold CV result for simulate
     # data. Also get the test results.
-    for definition in definitions:
-        for c_model_name, c_model in cnn_model.get_cnn_classes().items():
+    for c_model_name, c_model in cnn_model.get_cnn_classes().items():
+        for definition in definitions:
             run_classification(path_train, definition, path_test,
-                               c_model_name)
+                               c_model_name, save=args.savemodel)
