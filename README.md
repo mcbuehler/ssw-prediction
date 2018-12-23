@@ -1,5 +1,15 @@
 # DSL2018-Proj-Climate-Science
 
+## Introduction
+When Europeans experience a heavy temperature drop in winter,
+chances are that a *Sudden Stratospheric Warming* (SSW) has
+happened. This phenomenon is characterized by a strong temperature
+increase in the stratosphere, possibly up to 50 ̊C within a few days.
+Being able to predict these events can help meteorologists improve
+weather forecasting.
+
+Download the [poster](poster.pdf) if you want to get a quick overview about the project. If you would like more information, you can download the [report](report.pdf) or explore our code. For any feedback, don't hesitate to contact me. Thank you!
+
 ## Setup
 1. Set the environment variables.
 Default values for spaceml servers are given here:
